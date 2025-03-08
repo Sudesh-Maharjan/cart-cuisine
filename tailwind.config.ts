@@ -64,7 +64,7 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				restaurant: {
-					'primary': 'hsl(18, 75%, 55%)',
+					'primary': 'hsl(200, 75%, 55%)', // Changed from orange to teal blue
 					'secondary': 'hsl(40, 70%, 65%)',
 					'accent': 'hsl(340, 50%, 50%)',
 					'dark': 'hsl(220, 17%, 17%)',
