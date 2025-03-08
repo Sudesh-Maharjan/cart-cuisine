@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap');
 
 @tailwind base;
@@ -6,32 +7,32 @@
 
 @layer base {
   :root {
-    --background: 220 17% 17%;
-    --foreground: 30 20% 92%;
+    --background: 220 17% 10%;
+    --foreground: 30 20% 95%;
 
-    --card: 220 17% 20%;
-    --card-foreground: 30 20% 92%;
+    --card: 220 17% 13%;
+    --card-foreground: 30 20% 95%;
 
-    --popover: 220 17% 20%;
-    --popover-foreground: 30 20% 92%;
+    --popover: 220 17% 13%;
+    --popover-foreground: 30 20% 95%;
 
     --primary: 200 75% 55%;
-    --primary-foreground: 220 17% 17%;
+    --primary-foreground: 220 17% 10%;
 
     --secondary: 40 70% 65%;
-    --secondary-foreground: 220 17% 17%;
+    --secondary-foreground: 220 17% 10%;
 
-    --muted: 220 10% 25%;
-    --muted-foreground: 30 10% 75%;
+    --muted: 220 10% 20%;
+    --muted-foreground: 30 10% 80%;
 
     --accent: 340 50% 50%;
-    --accent-foreground: 30 20% 92%;
+    --accent-foreground: 30 20% 95%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 30 20% 92%;
+    --destructive-foreground: 30 20% 95%;
 
-    --border: 220 17% 25%;
-    --input: 220 17% 25%;
+    --border: 220 17% 20%;
+    --input: 220 17% 20%;
     --ring: 200 75% 55%;
 
     --radius: 0.5rem;
@@ -48,7 +49,7 @@
     --popover-foreground: 220 17% 17%;
 
     --primary: 200 75% 50%;
-    --primary-foreground: 30 20% 92%;
+    --primary-foreground: 30 20% 95%;
 
     --secondary: 40 70% 65%;
     --secondary-foreground: 220 17% 17%;
@@ -85,6 +86,10 @@ h1, h2, h3, h4, h5, h6 {
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .section-transition {
@@ -93,11 +98,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .menu-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  @apply bg-card rounded-lg overflow-hidden shadow-lg border border-border;
 }
 
 .menu-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.4);
 }
 
 .parallax {
@@ -108,7 +114,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .glass-panel {
-  background: rgba(35, 37, 43, 0.7);
+  background: rgba(15, 20, 25, 0.7);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -118,14 +124,23 @@ h1, h2, h3, h4, h5, h6 {
   animation: sizzle 2s infinite;
 }
 
+@keyframes sizzle {
+  0% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-2px) rotate(0.5deg); }
+  50% { transform: translateY(0) rotate(0); }
+  75% { transform: translateY(-1px) rotate(-0.5deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
 .food-card {
   transition: all 0.4s ease;
   overflow: hidden;
+  @apply bg-card rounded-lg border border-border shadow-xl;
 }
 
 .food-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .food-card:hover img {
@@ -135,3 +150,77 @@ h1, h2, h3, h4, h5, h6 {
 .food-card img {
   transition: transform 0.8s ease;
 }
+
+.animated-gradient-text {
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--accent)), hsl(var(--primary)));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: animated-gradient 8s ease infinite;
+}
+
+@keyframes animated-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.8s ease forwards;
+  opacity: 0;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-rotate {
+  transition: transform 0.5s ease;
+}
+
+.hover-rotate:hover {
+  transform: rotate(5deg);
+}
+
+.testimony-card {
+  @apply bg-card/60 backdrop-blur-md border border-white/10 rounded-lg p-6 shadow-xl;
+  transition: all 0.3s ease;
+}
+
+.testimony-card:hover {
+  @apply bg-card/80;
+  transform: translateY(-5px);
+}
+
+.about-card {
+  @apply bg-card rounded-lg p-4 border border-border shadow-md text-center;
+  transition: all 0.3s ease;
+}
+
+.about-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  @apply border-primary/50;
+}
+

@@ -3,7 +3,7 @@ import React from 'react';
 import { MenuItem } from '@/contexts/CartContext';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Star } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 interface MenuItemCardProps {
@@ -28,7 +28,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
   };
   
   return (
-    <div className="menu-card bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
+    <div className="food-card">
       <div className="h-48 overflow-hidden">
         <img 
           src={item.image} 
@@ -41,6 +41,13 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
           <h3 className="font-serif text-lg font-semibold text-foreground">{item.name}</h3>
           <span className="text-primary font-medium">{formatCurrency(item.price)}</span>
         </div>
+        
+        <div className="flex mb-2 text-restaurant-secondary">
+          {[...Array(Math.ceil(Math.random() * 2) + 3)].map((_, i) => (
+            <Star key={i} size={14} fill="currentColor" />
+          ))}
+        </div>
+        
         <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{item.description}</p>
         
         {showControls && (
@@ -50,7 +57,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="h-8 w-8"
+                  className="h-8 w-8 border-restaurant-primary text-restaurant-primary hover:bg-restaurant-primary/10"
                   onClick={() => handleUpdateQuantity(quantity - 1)}
                 >
                   <Minus size={16} />
@@ -59,7 +66,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="h-8 w-8"
+                  className="h-8 w-8 border-restaurant-primary text-restaurant-primary hover:bg-restaurant-primary/10"
                   onClick={() => handleUpdateQuantity(quantity + 1)}
                 >
                   <Plus size={16} />
@@ -68,7 +75,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
             ) : (
               <Button 
                 onClick={handleAddToCart}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-restaurant-primary hover:bg-restaurant-primary/90 text-primary-foreground w-full transition-all hover:shadow-glow"
               >
                 <ShoppingCart size={16} className="mr-2" />
                 Add to Cart

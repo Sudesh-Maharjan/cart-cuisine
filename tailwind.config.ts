@@ -64,11 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				restaurant: {
-					'primary': 'hsl(200, 75%, 55%)', // Changed from orange to teal blue
+					'primary': 'hsl(200, 75%, 55%)',
 					'secondary': 'hsl(40, 70%, 65%)',
 					'accent': 'hsl(340, 50%, 50%)',
-					'dark': 'hsl(220, 17%, 17%)',
-					'light': 'hsl(30, 20%, 92%)'
+					'dark': 'hsl(220, 17%, 10%)',
+					'light': 'hsl(30, 20%, 95%)'
 				}
 			},
 			borderRadius: {
@@ -104,6 +104,14 @@ export default {
 				pulse: {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.7' }
+				},
+				float: {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' }
+				},
+				shimmer: {
+					'0%': { backgroundPosition: '-200% 0' },
+					'100%': { backgroundPosition: '200% 0' },
 				}
 			},
 			animation: {
@@ -111,7 +119,9 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fadeIn 0.5s ease-in-out',
 				'slide-up': 'slideUp 0.5s ease-out',
-				'pulse-slow': 'pulse 3s ease-in-out infinite'
+				'pulse-slow': 'pulse 3s ease-in-out infinite',
+				'float': 'float 6s ease-in-out infinite',
+				'shimmer': 'shimmer 2s linear infinite'
 			},
 			fontFamily: {
 				'serif': ['Playfair Display', 'serif'],
@@ -119,11 +129,13 @@ export default {
 			},
 			boxShadow: {
 				'menu': '0 10px 30px -5px rgba(0, 0, 0, 0.3)',
-				'card': '0 8px 20px rgba(0, 0, 0, 0.2)'
+				'card': '0 8px 20px rgba(0, 0, 0, 0.2)',
+				'glow': '0 0 15px rgba(80, 160, 220, 0.5)'
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-				'food-texture': 'url("/food-texture.jpg")'
+				'food-texture': 'url("/food-texture.jpg")',
+				'shimmer': 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%)'
 			}
 		}
 	},
