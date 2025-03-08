@@ -64,11 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				restaurant: {
-					'primary': '#7D0A0A',
-					'secondary': '#BF9270',
-					'accent': '#F2ECBE',
-					'dark': '#3F2305',
-					'light': '#FAEBD7'
+					'primary': 'hsl(18, 75%, 55%)',
+					'secondary': 'hsl(40, 70%, 65%)',
+					'accent': 'hsl(340, 50%, 50%)',
+					'dark': 'hsl(220, 17%, 17%)',
+					'light': 'hsl(30, 20%, 92%)'
 				}
 			},
 			borderRadius: {
@@ -100,17 +100,30 @@ export default {
 				slideUp: {
 					'0%': { transform: 'translateY(20px)', opacity: '0' },
 					'100%': { transform: 'translateY(0)', opacity: '1' }
+				},
+				pulse: {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.7' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fadeIn 0.5s ease-in-out',
-				'slide-up': 'slideUp 0.5s ease-out'
+				'slide-up': 'slideUp 0.5s ease-out',
+				'pulse-slow': 'pulse 3s ease-in-out infinite'
 			},
 			fontFamily: {
 				'serif': ['Playfair Display', 'serif'],
 				'sans': ['Poppins', 'system-ui', 'sans-serif']
+			},
+			boxShadow: {
+				'menu': '0 10px 30px -5px rgba(0, 0, 0, 0.3)',
+				'card': '0 8px 20px rgba(0, 0, 0, 0.2)'
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'food-texture': 'url("/food-texture.jpg")'
 			}
 		}
 	},

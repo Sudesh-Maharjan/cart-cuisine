@@ -7,65 +7,65 @@
 
 @layer base {
   :root {
-    --background: 34 33% 98%;
-    --foreground: 20 14% 20%;
+    --background: 220 17% 17%;
+    --foreground: 30 20% 92%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 20 14% 20%;
+    --card: 220 17% 20%;
+    --card-foreground: 30 20% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14% 20%;
+    --popover: 220 17% 20%;
+    --popover-foreground: 30 20% 92%;
 
-    --primary: 0 57% 27%;
-    --primary-foreground: 34 33% 98%;
+    --primary: 18 75% 55%;
+    --primary-foreground: 220 17% 17%;
 
-    --secondary: 28 39% 60%;
-    --secondary-foreground: 0 0% 0%;
+    --secondary: 40 70% 65%;
+    --secondary-foreground: 220 17% 17%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 10% 25%;
+    --muted-foreground: 30 10% 75%;
 
-    --accent: 52 78% 85%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 340 50% 50%;
+    --accent-foreground: 30 20% 92%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 30 20% 92%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 17% 25%;
+    --input: 220 17% 25%;
+    --ring: 18 75% 55%;
 
     --radius: 0.5rem;
   }
 
-  .dark {
-    --background: 20 14% 10%;
-    --foreground: 34 33% 98%;
+  .light {
+    --background: 30 20% 96%;
+    --foreground: 220 17% 17%;
 
-    --card: 20 14% 15%;
-    --card-foreground: 34 33% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 17% 17%;
 
-    --popover: 20 14% 15%;
-    --popover-foreground: 34 33% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 17% 17%;
 
-    --primary: 0 57% 33%;
-    --primary-foreground: 34 33% 98%;
+    --primary: 18 75% 50%;
+    --primary-foreground: 30 20% 92%;
 
-    --secondary: 28 39% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 40 70% 65%;
+    --secondary-foreground: 220 17% 17%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 30 10% 92%;
+    --muted-foreground: 220 10% 40%;
 
-    --accent: 52 30% 40%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 340 50% 50%;
+    --accent-foreground: 30 20% 96%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 30 20% 96%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 220 17% 80%;
+    --input: 220 17% 80%;
+    --ring: 18 75% 50%;
   }
 }
 
@@ -84,7 +84,7 @@
 }
 
 .hero-section {
-  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)), url('/hero-bg.jpg');
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8)), url('/hero-bg.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -100,7 +100,7 @@
 
 .menu-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
 }
 
 .parallax {
@@ -108,4 +108,42 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
+}
+
+/* Custom glass effect for dark theme */
+.glass-panel {
+  background: rgba(35, 37, 43, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Food-related animations */
+@keyframes sizzle {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.sizzle-effect {
+  animation: sizzle 2s infinite;
+}
+
+/* Updated card styles for restaurant context */
+.food-card {
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.food-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+}
+
+.food-card:hover img {
+  transform: scale(1.1);
+}
+
+.food-card img {
+  transition: transform 0.8s ease;
 }

@@ -10,8 +10,8 @@ interface MenuCategoryCardProps {
 
 const MenuCategoryCard: React.FC<MenuCategoryCardProps> = ({ category }) => {
   return (
-    <div className="menu-card bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all">
-      <div className="h-48 overflow-hidden">
+    <div className="food-card bg-card rounded-lg overflow-hidden shadow-card hover:shadow-xl transition-all">
+      <div className="h-52 overflow-hidden">
         <img 
           src={category.image} 
           alt={category.name} 
@@ -19,13 +19,13 @@ const MenuCategoryCard: React.FC<MenuCategoryCardProps> = ({ category }) => {
         />
       </div>
       <div className="p-6">
-        <h3 className="font-serif text-xl font-semibold mb-2">{category.name}</h3>
-        <p className="text-gray-600 mb-4">{category.description}</p>
+        <h3 className="font-serif text-xl font-semibold mb-2 text-secondary">{category.name}</h3>
+        <p className="text-muted-foreground mb-4">{category.description}</p>
         <Link 
           to={`/menu/${category.id}`}
-          className="flex items-center text-restaurant-primary font-medium hover:underline"
+          className="flex items-center text-primary font-medium hover:underline group"
         >
-          View Items <ChevronRight size={18} className="ml-1" />
+          View Items <ChevronRight size={18} className="ml-1 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
     </div>
