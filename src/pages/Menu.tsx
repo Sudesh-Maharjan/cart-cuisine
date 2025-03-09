@@ -87,13 +87,13 @@ const Menu: React.FC = () => {
       <Navbar />
       
       {/* Menu Header */}
-      <section className="pt-32 pb-16 bg-gradient-to-b from-restaurant-light/60 to-white">
+      <section className="pt-32 pb-16 bg-gradient-to-b from-background to-muted/40">
         <div className="container mx-auto px-4 text-center">
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="font-serif text-4xl md:text-5xl font-bold mb-4 text-restaurant-dark"
+            className="font-serif text-4xl md:text-5xl font-bold mb-4 animate-fade-in"
           >
             Our Menu
           </motion.h1>
@@ -101,7 +101,7 @@ const Menu: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-gray-600 max-w-2xl mx-auto mb-8"
+            className="text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in opacity-90"
           >
             Explore our diverse menu crafted with passion, featuring the finest ingredients 
             and culinary expertise for an unforgettable dining experience.
@@ -221,13 +221,13 @@ const Menu: React.FC = () => {
       </section>
       
       {/* Dietary Information Section */}
-      <section className="py-16 bg-restaurant-light/30">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl font-bold mb-4 text-restaurant-dark">
+            <h2 className="font-serif text-3xl font-bold mb-4 text-gradient">
               Dietary Information
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               We cater to various dietary preferences and restrictions.
             </p>
           </div>
@@ -237,7 +237,7 @@ const Menu: React.FC = () => {
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wheat className="text-green-600" size={24} />
               </div>
-              <h3 className="font-serif text-lg font-semibold mb-2">Vegetarian</h3>
+              <h3 className="font-serif text-lg font-semibold mb-2 text-black">Vegetarian</h3>
               <p className="text-gray-600 text-sm">
                 Dishes made without meat, fish, or poultry.
               </p>
@@ -247,7 +247,7 @@ const Menu: React.FC = () => {
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Apple className="text-purple-600" size={24} />
               </div>
-              <h3 className="font-serif text-lg font-semibold mb-2">Vegan</h3>
+              <h3 className="font-serif text-lg font-semibold mb-2 text-black">Vegan</h3>
               <p className="text-gray-600 text-sm">
                 Dishes made without any animal products.
               </p>
@@ -257,7 +257,7 @@ const Menu: React.FC = () => {
               <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wheat className="text-yellow-600" size={24} />
               </div>
-              <h3 className="font-serif text-lg font-semibold mb-2">Gluten-Free</h3>
+              <h3 className="font-serif text-lg font-semibold mb-2 text-black">Gluten-Free</h3>
               <p className="text-gray-600 text-sm">
                 Dishes that do not contain gluten.
               </p>
@@ -267,7 +267,7 @@ const Menu: React.FC = () => {
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Fish className="text-blue-600" size={24} />
               </div>
-              <h3 className="font-serif text-lg font-semibold mb-2">Pescatarian</h3>
+              <h3 className="font-serif text-lg font-semibold mb-2 text-black">Pescatarian</h3>
               <p className="text-gray-600 text-sm">
                 Dishes that include fish but no other meats.
               </p>
@@ -275,7 +275,7 @@ const Menu: React.FC = () => {
           </div>
           
           <div className="text-center mt-12">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               If you have specific dietary needs or allergies, please inform our staff when ordering.
             </p>
           </div>
@@ -283,19 +283,19 @@ const Menu: React.FC = () => {
       </section>
       
       {/* Special Offers */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl font-bold mb-4 text-restaurant-dark">
+            <h2 className="font-serif text-3xl font-bold mb-4 text-gradient">
               Special Offers
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Enjoy our limited-time specials created by our talented chefs.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row group">
+            <div className=" rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row group">
               <div className="md:w-2/5 overflow-hidden">
                 <img 
                   src="/special-1.jpg" 
@@ -305,7 +305,7 @@ const Menu: React.FC = () => {
               </div>
               <div className="md:w-3/5 p-6">
                 <div className="text-restaurant-primary font-medium mb-2">WEEKEND SPECIAL</div>
-                <h3 className="font-serif text-2xl font-semibold mb-3 text-restaurant-dark">
+                <h3 className="font-serif text-2xl font-semibold mb-3 text-muted-foreground">
                   Gourmet Brunch Experience
                 </h3>
                 <p className="text-gray-600 mb-4">
@@ -321,7 +321,7 @@ const Menu: React.FC = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row group">
+            <div className=" rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row group">
               <div className="md:w-2/5 overflow-hidden">
                 <img 
                   src="/special-2.jpg" 
@@ -331,7 +331,7 @@ const Menu: React.FC = () => {
               </div>
               <div className="md:w-3/5 p-6">
                 <div className="text-restaurant-primary font-medium mb-2">CHEF'S SPECIAL</div>
-                <h3 className="font-serif text-2xl font-semibold mb-3 text-restaurant-dark">
+                <h3 className="font-serif text-2xl font-semibold mb-3 text-muted-foreground">
                   Five-Course Tasting Menu
                 </h3>
                 <p className="text-gray-600 mb-4">

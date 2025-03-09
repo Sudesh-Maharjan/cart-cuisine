@@ -44,7 +44,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();

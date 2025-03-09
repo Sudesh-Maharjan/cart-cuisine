@@ -59,7 +59,7 @@ const About: React.FC = () => {
       <section className="pt-32 pb-16 bg-gradient-to-b from-background to-muted/40">
         <div className="container mx-auto px-4 text-center">
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-gradient animate-fade-in">
-            About Savoria
+            About Restaurant
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in opacity-90">
             Discover our story, our passion for food, and the team that makes Savoria special.
@@ -106,7 +106,7 @@ const About: React.FC = () => {
             </div>
             <div className="relative opacity-0">
               <img 
-                src="/restaurant-story.jpg" 
+                src="https://i0.wp.com/www.designlike.com/wp-content/uploads/2018/03/restaurant-1948732_1920.jpg" 
                 alt="Our Restaurant Story" 
                 className="rounded-lg shadow-xl w-full h-[500px] object-cover"
               />
@@ -186,37 +186,37 @@ const About: React.FC = () => {
                 name: "Michael Reynolds",
                 title: "Executive Chef & Founder",
                 bio: "With over 25 years of culinary experience across Europe and Asia, Chef Michael brings his passion for flavor and innovation to every dish at Savoria.",
-                image: "/chef.jpg"
+                image: "https://th.bing.com/th/id/OIP.MsBEmrUPZd8MximX_40N1QHaEJ?rs=1&pid=ImgDetMain"
               },
               {
                 name: "Sophia Martinez",
                 title: "Head Chef",
                 bio: "Trained in Paris, Sophia specializes in combining classic French techniques with global influences, creating Savoria's signature dishes.",
-                image: "/head-chef.jpg"
+                image: "https://th.bing.com/th/id/OIP.MsBEmrUPZd8MximX_40N1QHaEJ?rs=1&pid=ImgDetMain"
               },
               {
                 name: "James Wilson",
                 title: "Pastry Chef",
                 bio: "James transforms simple ingredients into extraordinary desserts, adding the perfect sweet finale to the Savoria dining experience.",
-                image: "/pastry-chef.jpg"
+                image: "https://th.bing.com/th/id/OIP.MsBEmrUPZd8MximX_40N1QHaEJ?rs=1&pid=ImgDetMain"
               },
               {
                 name: "Elena Rodriguez",
                 title: "Sommelier",
                 bio: "With an exceptional palate and knowledge of wines from around the world, Elena curates our award-winning wine list and perfect pairings.",
-                image: "/sommelier.jpg"
+                image: "https://th.bing.com/th/id/OIP.MsBEmrUPZd8MximX_40N1QHaEJ?rs=1&pid=ImgDetMain"
               },
               {
                 name: "Thomas Chen",
                 title: "Restaurant Manager",
                 bio: "Thomas ensures that every aspect of your dining experience is seamless, from reservation to farewell, with warmth and attention to detail.",
-                image: "/manager.jpg"
+                image: "https://th.bing.com/th/id/OIP.MsBEmrUPZd8MximX_40N1QHaEJ?rs=1&pid=ImgDetMain"
               },
               {
                 name: "Sarah Kim",
                 title: "Bar Director",
                 bio: "Sarah crafts our innovative cocktail menu, blending classic techniques with unexpected ingredients and presentations.",
-                image: "/bartender.jpg"
+                image: "https://th.bing.com/th/id/OIP.MsBEmrUPZd8MximX_40N1QHaEJ?rs=1&pid=ImgDetMain"
               }
             ].map((member, index) => (
               <div 

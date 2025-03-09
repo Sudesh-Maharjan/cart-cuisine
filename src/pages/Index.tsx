@@ -97,7 +97,7 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="font-serif text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
-              Welcome to <span className="animated-gradient-text">Savoria</span>
+              Welcome to <span className="animated-gradient-text">Restaurant</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-foreground/80 animate-fade-in">
               Experience culinary excellence in every bite with our artisanal dishes crafted from the finest ingredients
@@ -145,7 +145,7 @@ const HomePage: React.FC = () => {
                 Our <span className="text-restaurant-primary">Culinary</span> Story
               </h2>
               <p className="text-foreground/80 mb-6 animate-on-scroll">
-                Founded in 2010, Savoria has been serving exquisite cuisine with a focus on fresh, locally-sourced ingredients. 
+                Founded in 2010, Restaurant has been serving exquisite cuisine with a focus on fresh, locally-sourced ingredients. 
                 Our chef, with over 20 years of culinary experience, creates dishes that blend traditional techniques with modern innovation.
               </p>
               <p className="text-foreground/80 mb-8 animate-on-scroll">
@@ -174,7 +174,7 @@ const HomePage: React.FC = () => {
             <div className="order-1 md:order-2">
               <div className="relative animate-on-scroll">
                 <img 
-                  src="/restaurant-interior.jpg" 
+                  src="https://i0.wp.com/www.designlike.com/wp-content/uploads/2018/03/restaurant-1948732_1920.jpg" 
                   alt="Restaurant Interior" 
                   className="rounded-lg shadow-xl w-full object-cover border border-border"
                   style={{ height: '500px' }}
@@ -237,7 +237,7 @@ const HomePage: React.FC = () => {
               Find <span className="text-restaurant-primary">Us</span>
             </h2>
             <p className="text-foreground/80 max-w-2xl mx-auto animate-on-scroll">
-              Located in the heart of the city, Savoria offers a convenient and charming location for your dining experience.
+              Located in the heart of the city, Restaurant offers a convenient and charming location for your dining experience.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -297,8 +297,8 @@ const HomePage: React.FC = () => {
                       </h3>
                       <ul className="space-y-2 text-foreground/80">
                         <li><span className="font-medium">Phone:</span> (555) 123-4567</li>
-                        <li><span className="font-medium">Email:</span> info@savoria.com</li>
-                        <li><span className="font-medium">Reservations:</span> reservations@savoria.com</li>
+                        <li><span className="font-medium">Email:</span> info@restaurant.com</li>
+                        <li><span className="font-medium">Reservations:</span> reservations@restaurant.com</li>
                       </ul>
                     </div>
                   </div>
@@ -331,7 +331,7 @@ const HomePage: React.FC = () => {
               What Our <span className="text-restaurant-primary">Guests</span> Say
             </h2>
             <p className="max-w-2xl mx-auto opacity-80 animate-on-scroll">
-              Don't just take our word for it. Here's what our valued customers have experienced at Savoria.
+              Don't just take our word for it. Here's what our valued customers have experienced at Restaurant.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -345,7 +345,7 @@ const HomePage: React.FC = () => {
               },
               {
                 name: "Michael Chen",
-                text: "Savoria knows how to create a perfect evening. From appetizers to desserts, everything was delightful.",
+                text: "Restaurant knows how to create a perfect evening. From appetizers to desserts, everything was delightful.",
                 image: "/customer2.jpg",
                 rating: 5,
                 position: "Food Critic"
@@ -392,7 +392,7 @@ const HomePage: React.FC = () => {
             Ready for an Unforgettable Dining Experience?
           </h2>
           <p className="text-lg max-w-2xl mx-auto mb-8 opacity-90 animate-on-scroll">
-            Join us at Savoria today and treat yourself to the finest culinary creations.
+            Join us at Restaurant today and treat yourself to the finest culinary creations.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-on-scroll">
             <Button 
