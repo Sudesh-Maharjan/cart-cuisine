@@ -21,7 +21,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
 };
@@ -137,8 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Register function
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+  // Register function - updated parameter order
+  const register = async (firstName: string, lastName: string, email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signUp({
         email,

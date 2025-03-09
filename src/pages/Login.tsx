@@ -48,8 +48,13 @@ const Login: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
+    // Split the name into first and last name
+    const nameParts = registerName.trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
     try {
-      await register(registerName, registerEmail, registerPassword);
+      await register(firstName, lastName, registerEmail, registerPassword);
       toast({
         title: 'Registration successful',
         description: 'Your account has been created.',

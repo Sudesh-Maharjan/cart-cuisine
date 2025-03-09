@@ -9,7 +9,7 @@ import { ShoppingCart, Menu, X, User } from 'lucide-react';
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const { cartItems } = useCart();
   const location = useLocation();
   
@@ -31,6 +31,11 @@ const Navbar: React.FC = () => {
   }, [location.pathname]);
   
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  
+  // Get display name from profile
+  const displayName = profile ? 
+    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
+    'User';
   
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -62,7 +67,7 @@ const Navbar: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link to="/profile" className="flex items-center space-x-2 hover:text-restaurant-primary">
                   <User size={20} />
-                  <span>{user.name}</span>
+                  <span>{displayName}</span>
                 </Link>
                 <Button variant="outline" onClick={logout}>Logout</Button>
               </div>
@@ -122,7 +127,7 @@ const Navbar: React.FC = () => {
               <div className="space-y-2">
                 <Link to="/profile" className="flex items-center space-x-2 py-2 hover:text-restaurant-primary">
                   <User size={20} />
-                  <span>{user.name}</span>
+                  <span>{displayName}</span>
                 </Link>
                 <Button variant="outline" onClick={logout} className="w-full">Logout</Button>
               </div>
