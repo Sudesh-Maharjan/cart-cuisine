@@ -44,7 +44,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
@@ -71,13 +71,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(data as Profile);
         // Set admin status from profile data
         console.log("Is admin value:", data.is_admin);
-        setIsAdmin(!!data.is_admin); // Use double negation to ensure boolean value
+        setIsAdmin(data.is_admin); // Use double negation to ensure boolean value
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
     }
   };
 
+  useEffect(() => {
+    if (profile) {
+      console.log("Updating isAdmin state:", profile.is_admin);
+      setIsAdmin(profile.is_admin);
+    }
+  }, [profile]);
+  
   // Check auth status on mount and listen for changes
   useEffect(() => {
     const initAuth = async () => {

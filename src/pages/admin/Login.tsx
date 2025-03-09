@@ -12,15 +12,16 @@ const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated, isAdmin, profile } = useAuth();
+  const { login, isAuthenticated, isAdmin, profile, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     // Debug logging to help track admin status
-    console.log("Auth state in AdminLogin:", { isAuthenticated, isAdmin, profile });
+    console.log("Auth state in AdminLogin:", { isAuthenticated, isAdmin, profile, authLoading });
     
-    if (isAuthenticated) {
+    if (!authLoading && isAuthenticated) {
+      if (profile === null) return;
       if (isAdmin) {
         navigate('/admin/dashboard');
       } else {
