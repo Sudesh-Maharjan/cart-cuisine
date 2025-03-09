@@ -1,7 +1,8 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { categories } from '@/data/menu';
+import { supabase } from '@/integrations/supabase/client';
+import { MenuCategory } from '@/data/menu';
 import MenuCategoryCard from '@/components/MenuCategoryCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowDown, Utensils, Award, Clock, Users, ChefHat, Star, MapPin, Phone } from 'lucide-react';
 import { scrollToSection } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 const HomePage: React.FC = () => {
   // Create refs for each section to track visibility
@@ -16,6 +18,39 @@ const HomePage: React.FC = () => {
   const menuRef = useRef<HTMLElement>(null);
   const locationRef = useRef<HTMLElement>(null);
   const testimonialsRef = useRef<HTMLElement>(null);
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const { toast } = useToast();
+
+  // Fetch menu categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('menu_categories')
+          .select('*')
+          .order('name');
+          
+        if (error) throw error;
+        
+        const formattedCategories: MenuCategory[] = data.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          description: cat.description || '',
+          image: cat.image_url || '/placeholder.svg'
+        }));
+        
+        setCategories(formattedCategories);
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: `Failed to load menu categories: ${error.message}`,
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    fetchCategories();
+  }, [toast]);
 
   // Function to handle intersection observer
   useEffect(() => {

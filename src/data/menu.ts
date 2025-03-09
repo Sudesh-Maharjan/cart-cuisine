@@ -8,6 +8,12 @@ export type MenuCategory = {
   image: string;
 };
 
+// Export the MenuItem type from CartContext 
+export type { MenuItem };
+
+// Mock categories array for backward compatibility with the Index page
+export const categories: MenuCategory[] = [];
+
 // These functions will fetch data from Supabase instead of using static arrays
 export const getMenuItemsByCategory = async (categoryId: string): Promise<MenuItem[]> => {
   // This function is kept for backward compatibility

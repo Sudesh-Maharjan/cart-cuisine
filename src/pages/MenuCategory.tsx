@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MenuItemCard from '@/components/MenuItemCard';
-import { MenuCategory, MenuItem } from '@/data/menu';
+import { MenuCategory } from '@/data/menu';
+import { MenuItem } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -63,7 +64,7 @@ const MenuCategoryPage: React.FC = () => {
           id: item.id,
           name: item.name,
           description: item.description || '',
-          price: parseFloat(item.price),
+          price: item.price, // This is already a number from Supabase
           image: item.image_url || '/placeholder.svg',
           category: categoryId
         }));
