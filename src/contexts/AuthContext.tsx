@@ -69,9 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data) {
         setProfile(data as Profile);
-        // Explicitly log the admin status
+        // Set admin status from profile data
         console.log("Is admin value:", data.is_admin);
-        setIsAdmin(data.is_admin === true);
+        setIsAdmin(!!data.is_admin); // Use double negation to ensure boolean value
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);

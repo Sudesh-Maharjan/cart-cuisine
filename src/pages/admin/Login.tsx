@@ -12,11 +12,14 @@ const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated, isAdmin } = useAuth();
+  const { login, isAuthenticated, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Debug logging to help track admin status
+    console.log("Auth state in AdminLogin:", { isAuthenticated, isAdmin, profile });
+    
     if (isAuthenticated) {
       if (isAdmin) {
         navigate('/admin/dashboard');
@@ -26,10 +29,12 @@ const AdminLogin: React.FC = () => {
           description: "You don't have admin privileges.",
           variant: "destructive",
         });
+        console.log("Access denied - Admin status:", isAdmin);
+        console.log("Profile data:", profile);
         navigate('/');
       }
     }
-  }, [isAuthenticated, isAdmin, navigate, toast]);
+  }, [isAuthenticated, isAdmin, navigate, toast, profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +51,7 @@ const AdminLogin: React.FC = () => {
     try {
       setIsLoading(true);
       await login(email, password);
+      // After login, the useEffect will handle navigation based on admin status
     } catch (error) {
       console.error("Login error:", error);
     } finally {
