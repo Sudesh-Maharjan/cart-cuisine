@@ -64,15 +64,14 @@ const Orders: React.FC = () => {
           if (order.user_id) {
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
-              .select('first_name, last_name, id, email')
+              .select('first_name, last_name, id')
               .eq('id', order.user_id)
               .maybeSingle();
               
             if (!profileError && profileData) {
               username = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim();
-              // For email, we need to fetch from auth.users which we can't directly
-              // The email might be stored in profiles table or we use a placeholder
-              userEmail = profileData.email || 'No email available';
+              // Since email is not in profiles table, use a placeholder or fetch from auth if needed
+              userEmail = 'No email available';
             }
           }
           
