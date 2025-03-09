@@ -47,37 +47,51 @@ const Orders: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Fetch orders with user data and item counts
-      const { data, error } = await supabase
+      // Fetch orders
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email
-          ),
-          order_items:id (
-            id
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (ordersError) throw ordersError;
       
-      // Format the data for display
-      const formattedOrders = data.map(order => ({
-        id: order.id,
-        created_at: order.created_at,
-        total_amount: order.total_amount,
-        status: order.status,
-        user_id: order.user_id,
-        user_email: order.profiles?.email,
-        username: `${order.profiles?.first_name || ''} ${order.profiles?.last_name || ''}`.trim(),
-        items_count: order.order_items ? order.order_items.length : 0
-      }));
+      // For each order, fetch user profile if available
+      const ordersWithUserData = await Promise.all(
+        ordersData.map(async (order) => {
+          let userEmail = '';
+          let username = 'Guest';
+          
+          if (order.user_id) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, id, email')
+              .eq('id', order.user_id)
+              .maybeSingle();
+              
+            if (!profileError && profileData) {
+              username = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim();
+              // For email, we need to fetch from auth.users which we can't directly
+              // The email might be stored in profiles table or we use a placeholder
+              userEmail = profileData.email || 'No email available';
+            }
+          }
+          
+          // Count order items
+          const { count, error: countError } = await supabase
+            .from('order_items')
+            .select('id', { count: 'exact' })
+            .eq('order_id', order.id);
+            
+          return {
+            ...order,
+            user_email: userEmail,
+            username: username,
+            items_count: count || 0
+          };
+        })
+      );
       
-      setOrders(formattedOrders);
+      setOrders(ordersWithUserData);
     } catch (error: any) {
       toast({
         title: 'Error',
