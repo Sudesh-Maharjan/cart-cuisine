@@ -22,6 +22,7 @@ type AuthContextType = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  registerAdmin: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
 };
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => {},
   register: async () => {},
+  registerAdmin: async () => {},
   logout: async () => {},
   updateProfile: async () => {},
 });
@@ -72,9 +74,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Set admin status from profile data
         console.log("Is admin value:", data.is_admin);
         setIsAdmin(!!data.is_admin); // Use double negation to ensure boolean value
+      } else {
+        setIsAdmin(false);
+        console.log("No profile data found");
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
+      setIsAdmin(false);
     }
   };
 
@@ -90,6 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         await fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setIsAdmin(false);
       }
       
       setIsLoading(false);
@@ -134,6 +143,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
+      // After successful login, get the updated session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+        console.log("Login successful, profile loaded with admin status:", isAdmin);
+      }
+
       toast({
         title: "Login successful",
         description: "Welcome back!",
@@ -173,6 +190,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error: any) {
       console.error('Registration error:', error.message);
+      throw error;
+    }
+  };
+
+  // Register admin function
+  const registerAdmin = async (firstName: string, lastName: string, email: string, password: string) => {
+    try {
+      // First create the user
+      const { data: userData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (signUpError) {
+        toast({
+          title: "Admin registration failed",
+          description: signUpError.message,
+          variant: "destructive",
+        });
+        throw signUpError;
+      }
+
+      // If user creation is successful, update the profile to set is_admin to true
+      if (userData?.user) {
+        // We manually update the profile here since the trigger might set is_admin to false by default
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ is_admin: true })
+          .eq('id', userData.user.id);
+
+        if (profileError) {
+          console.error("Error setting admin privileges:", profileError);
+          toast({
+            title: "Admin privilege assignment failed",
+            description: "User created but admin privileges could not be set.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      toast({
+        title: "Admin registration successful",
+        description: "Admin account has been created successfully.",
+      });
+    } catch (error: any) {
+      console.error('Admin registration error:', error.message);
       throw error;
     }
   };
@@ -241,6 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        registerAdmin,
         logout,
         updateProfile,
       }}
