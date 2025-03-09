@@ -52,6 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
     try {
+      console.log("Fetching profile for user ID:", userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -59,12 +61,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
+        console.error("Profile fetch error:", error);
         throw error;
       }
 
+      console.log("Profile data:", data);
+      
       if (data) {
         setProfile(data as Profile);
-        setIsAdmin(data.is_admin || false);
+        // Explicitly log the admin status
+        console.log("Is admin value:", data.is_admin);
+        setIsAdmin(data.is_admin === true);
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
@@ -137,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Register function - updated parameter order
+  // Register function
   const register = async (firstName: string, lastName: string, email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signUp({

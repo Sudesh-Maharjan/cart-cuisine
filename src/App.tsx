@@ -16,6 +16,7 @@ import OrderSuccess from "./pages/OrderSuccess";
 import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Reservation from "./pages/Reservation";
+import Profile from "./pages/Profile";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/Login";
@@ -24,6 +25,9 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import Categories from "./pages/admin/Categories";
 import MenuItems from "./pages/admin/MenuItems";
 import Addons from "./pages/admin/Addons";
+import Orders from "./pages/admin/Orders";
+import Reservations from "./pages/admin/Reservations";
+import Settings from "./pages/admin/Settings";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +47,7 @@ const App = () => (
               <Route path="/menu/:categoryId" element={<MenuCategory />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/reservation" element={<Reservation />} />
               <Route path="/order-success" element={<OrderSuccess />} />
@@ -54,6 +59,9 @@ const App = () => (
                 <Route path="categories" element={<Categories />} />
                 <Route path="menu-items" element={<MenuItems />} />
                 <Route path="addons" element={<Addons />} />
+                <Route path="orders" element={<Orders />} />
+                <Route path="reservations" element={<Reservations />} />
+                <Route path="settings" element={<Settings />} />
                 <Route index element={<AdminDashboard />} />
               </Route>
               

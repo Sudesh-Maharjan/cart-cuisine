@@ -7,11 +7,16 @@ import MenuCategoryCard from '@/components/MenuCategoryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { MenuCategory } from '@/data/menu';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, Coffee, Pizza, Utensils, Apple, Fish, Beef, Wheat } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { motion } from 'framer-motion';
 
 const Menu: React.FC = () => {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<MenuCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,6 +38,7 @@ const Menu: React.FC = () => {
         }));
 
         setCategories(formattedCategories);
+        setFilteredCategories(formattedCategories);
       } catch (error: any) {
         toast({
           title: 'Error',
@@ -47,54 +53,237 @@ const Menu: React.FC = () => {
     fetchCategories();
   }, [toast]);
 
+  // Handle search functionality
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = categories.filter(category => 
+        category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        category.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredCategories(filtered);
+    } else {
+      setFilteredCategories(categories);
+    }
+  }, [searchQuery, categories]);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
     <>
       <Navbar />
       
       {/* Menu Header */}
-      <section className="pt-32 pb-16 bg-restaurant-accent/30">
+      <section className="pt-32 pb-16 bg-gradient-to-b from-restaurant-light/60 to-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 text-restaurant-dark">
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="font-serif text-4xl md:text-5xl font-bold mb-4 text-restaurant-dark"
+          >
             Our Menu
-          </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto mb-8">
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="text-gray-600 max-w-2xl mx-auto mb-8"
+          >
             Explore our diverse menu crafted with passion, featuring the finest ingredients 
             and culinary expertise for an unforgettable dining experience.
-          </p>
-          <div className="flex justify-center space-x-2 text-sm">
-            <Link to="/" className="text-gray-600 hover:text-restaurant-primary">
+          </motion.p>
+          
+          {/* Search bar */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="relative max-w-md mx-auto mb-8"
+          >
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+            <Input
+              placeholder="Search categories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-white shadow-md focus-visible:ring-restaurant-primary"
+            />
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="flex justify-center space-x-2 text-sm"
+          >
+            <Link to="/" className="text-gray-600 hover:text-restaurant-primary transition-colors">
               Home
             </Link>
             <span className="text-gray-400">/</span>
             <span className="text-restaurant-primary font-medium">Menu</span>
-          </div>
+          </motion.div>
         </div>
       </section>
       
       {/* Menu Categories */}
-      <section className="py-16 bg-white">
+      <section className="py-16">
         <div className="container mx-auto px-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2">Loading menu categories...</span>
+          <Tabs defaultValue="all" className="mb-8">
+            <div className="flex justify-center">
+              <TabsList className="bg-restaurant-light/30 p-1">
+                <TabsTrigger value="all" className="data-[state=active]:bg-white">
+                  <Utensils size={16} className="mr-2" />
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="mains" className="data-[state=active]:bg-white">
+                  <Pizza size={16} className="mr-2" />
+                  Mains
+                </TabsTrigger>
+                <TabsTrigger value="sides" className="data-[state=active]:bg-white">
+                  <Wheat size={16} className="mr-2" />
+                  Sides
+                </TabsTrigger>
+                <TabsTrigger value="drinks" className="data-[state=active]:bg-white">
+                  <Coffee size={16} className="mr-2" />
+                  Drinks
+                </TabsTrigger>
+                <TabsTrigger value="desserts" className="data-[state=active]:bg-white">
+                  <Apple size={16} className="mr-2" />
+                  Desserts
+                </TabsTrigger>
+              </TabsList>
             </div>
-          ) : categories.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {categories.map(category => (
-                <MenuCategoryCard key={category.id} category={category} />
-              ))}
+            
+            <TabsContent value="all">
+              {isLoading ? (
+                <div className="flex justify-center items-center py-16">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading menu categories...</span>
+                </div>
+              ) : filteredCategories.length > 0 ? (
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+                >
+                  {filteredCategories.map(category => (
+                    <motion.div key={category.id} variants={itemVariants}>
+                      <MenuCategoryCard category={category} />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <div className="text-center py-16">
+                  <p className="text-muted-foreground">
+                    {searchQuery ? 'No categories found matching your search.' : 'No menu categories found.'}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+            
+            {/* Placeholder tabs - these would ideally filter the data */}
+            <TabsContent value="mains">
+              <div className="text-center py-16">
+                <p className="text-muted-foreground">Showing main dishes category.</p>
+              </div>
+            </TabsContent>
+            <TabsContent value="sides">
+              <div className="text-center py-16">
+                <p className="text-muted-foreground">Showing side dishes category.</p>
+              </div>
+            </TabsContent>
+            <TabsContent value="drinks">
+              <div className="text-center py-16">
+                <p className="text-muted-foreground">Showing drinks category.</p>
+              </div>
+            </TabsContent>
+            <TabsContent value="desserts">
+              <div className="text-center py-16">
+                <p className="text-muted-foreground">Showing desserts category.</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </section>
+      
+      {/* Dietary Information Section */}
+      <section className="py-16 bg-restaurant-light/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-3xl font-bold mb-4 text-restaurant-dark">
+              Dietary Information
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              We cater to various dietary preferences and restrictions.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wheat className="text-green-600" size={24} />
+              </div>
+              <h3 className="font-serif text-lg font-semibold mb-2">Vegetarian</h3>
+              <p className="text-gray-600 text-sm">
+                Dishes made without meat, fish, or poultry.
+              </p>
             </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground">No menu categories found.</p>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Apple className="text-purple-600" size={24} />
+              </div>
+              <h3 className="font-serif text-lg font-semibold mb-2">Vegan</h3>
+              <p className="text-gray-600 text-sm">
+                Dishes made without any animal products.
+              </p>
             </div>
-          )}
+            
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wheat className="text-yellow-600" size={24} />
+              </div>
+              <h3 className="font-serif text-lg font-semibold mb-2">Gluten-Free</h3>
+              <p className="text-gray-600 text-sm">
+                Dishes that do not contain gluten.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Fish className="text-blue-600" size={24} />
+              </div>
+              <h3 className="font-serif text-lg font-semibold mb-2">Pescatarian</h3>
+              <p className="text-gray-600 text-sm">
+                Dishes that include fish but no other meats.
+              </p>
+            </div>
+          </div>
+          
+          <div className="text-center mt-12">
+            <p className="text-gray-600">
+              If you have specific dietary needs or allergies, please inform our staff when ordering.
+            </p>
+          </div>
         </div>
       </section>
       
       {/* Special Offers */}
-      <section className="py-16 bg-restaurant-light">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl font-bold mb-4 text-restaurant-dark">
@@ -106,12 +295,12 @@ const Menu: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row">
-              <div className="md:w-2/5">
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row group">
+              <div className="md:w-2/5 overflow-hidden">
                 <img 
                   src="/special-1.jpg" 
                   alt="Weekend Brunch" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
               <div className="md:w-3/5 p-6">
@@ -132,12 +321,12 @@ const Menu: React.FC = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row">
-              <div className="md:w-2/5">
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row group">
+              <div className="md:w-2/5 overflow-hidden">
                 <img 
                   src="/special-2.jpg" 
                   alt="Chef's Tasting Menu" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
               <div className="md:w-3/5 p-6">
@@ -156,97 +345,6 @@ const Menu: React.FC = () => {
                   Wine pairing available for an additional $35
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Menu Information */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-restaurant-light p-6 rounded-lg">
-              <h3 className="font-serif text-xl font-semibold mb-3 text-restaurant-dark">
-                Dietary Options
-              </h3>
-              <p className="text-gray-600 mb-4">
-                We cater to various dietary needs and preferences. Look for these symbols on our menu items:
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="text-restaurant-primary font-bold mr-2">(V)</span>
-                  <span>Vegetarian</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-restaurant-primary font-bold mr-2">(VG)</span>
-                  <span>Vegan</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-restaurant-primary font-bold mr-2">(GF)</span>
-                  <span>Gluten-Free</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-restaurant-primary font-bold mr-2">(N)</span>
-                  <span>Contains Nuts</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-restaurant-light p-6 rounded-lg">
-              <h3 className="font-serif text-xl font-semibold mb-3 text-restaurant-dark">
-                Ingredient Sourcing
-              </h3>
-              <p className="text-gray-600 mb-4">
-                We pride ourselves on using fresh, locally-sourced ingredients whenever possible.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Organic produce from local farms</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Sustainably caught seafood</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Free-range, antibiotic-free poultry</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Artisanal cheeses and breads</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-restaurant-light p-6 rounded-lg">
-              <h3 className="font-serif text-xl font-semibold mb-3 text-restaurant-dark">
-                Private Dining
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Hosting a special event? We offer private dining experiences with customized menus.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Corporate events</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Birthday celebrations</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Anniversary dinners</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">•</span>
-                  <span>Wedding receptions</span>
-                </li>
-              </ul>
-              <p className="mt-4 text-restaurant-primary font-medium">
-                Contact us for reservations and inquiries.
-              </p>
             </div>
           </div>
         </div>
