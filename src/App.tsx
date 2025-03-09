@@ -17,6 +17,14 @@ import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Reservation from "./pages/Reservation";
 
+// Admin Pages
+import AdminLogin from "./pages/admin/Login";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/Dashboard";
+import Categories from "./pages/admin/Categories";
+import MenuItems from "./pages/admin/MenuItems";
+import Addons from "./pages/admin/Addons";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,6 +36,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Customer routes */}
               <Route path="/" element={<Index />} />
               <Route path="/about" element={<About />} />
               <Route path="/menu" element={<Menu />} />
@@ -37,7 +46,18 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/reservation" element={<Reservation />} />
               <Route path="/order-success" element={<OrderSuccess />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              
+              {/* Admin routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="menu-items" element={<MenuItems />} />
+                <Route path="addons" element={<Addons />} />
+                <Route index element={<AdminDashboard />} />
+              </Route>
+              
+              {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
