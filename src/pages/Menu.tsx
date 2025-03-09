@@ -1,12 +1,52 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { categories } from '@/data/menu';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MenuCategoryCard from '@/components/MenuCategoryCard';
+import { supabase } from '@/integrations/supabase/client';
+import { MenuCategory } from '@/data/menu';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const Menu: React.FC = () => {
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('menu_categories')
+          .select('*')
+          .order('name');
+
+        if (error) throw error;
+
+        // Transform data to match MenuCategory type
+        const formattedCategories = data.map(category => ({
+          id: category.id,
+          name: category.name,
+          description: category.description || '',
+          image: category.image_url || '/placeholder.svg'
+        }));
+
+        setCategories(formattedCategories);
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: `Failed to load menu categories: ${error.message}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [toast]);
+
   return (
     <>
       <Navbar />
@@ -34,11 +74,22 @@ const Menu: React.FC = () => {
       {/* Menu Categories */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {categories.map(category => (
-              <MenuCategoryCard key={category.id} category={category} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading menu categories...</span>
+            </div>
+          ) : categories.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {categories.map(category => (
+                <MenuCategoryCard key={category.id} category={category} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">No menu categories found.</p>
+            </div>
+          )}
         </div>
       </section>
       

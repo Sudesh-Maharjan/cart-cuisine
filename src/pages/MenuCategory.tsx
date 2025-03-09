@@ -1,15 +1,100 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getMenuItemsByCategory, categories } from '@/data/menu';
+import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MenuItemCard from '@/components/MenuItemCard';
+import { MenuCategory, MenuItem } from '@/data/menu';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
-const MenuCategory: React.FC = () => {
+const MenuCategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const menuItems = getMenuItemsByCategory(categoryId || '');
-  const category = categories.find(c => c.id === categoryId);
+  const [category, setCategory] = useState<MenuCategory | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    const fetchCategoryAndItems = async () => {
+      if (!categoryId) return;
+      
+      setIsLoading(true);
+      
+      try {
+        // Fetch category
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('menu_categories')
+          .select('*')
+          .eq('id', categoryId)
+          .single();
+          
+        if (categoryError) throw categoryError;
+        
+        if (!categoryData) {
+          setCategory(null);
+          setMenuItems([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Format category data
+        const formattedCategory: MenuCategory = {
+          id: categoryData.id,
+          name: categoryData.name,
+          description: categoryData.description || '',
+          image: categoryData.image_url || '/placeholder.svg'
+        };
+        
+        setCategory(formattedCategory);
+        
+        // Fetch menu items for this category
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('menu_items')
+          .select('*')
+          .eq('category_id', categoryId)
+          .order('name');
+          
+        if (itemsError) throw itemsError;
+        
+        // Format items data
+        const formattedItems: MenuItem[] = itemsData.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          price: parseFloat(item.price),
+          image: item.image_url || '/placeholder.svg',
+          category: categoryId
+        }));
+        
+        setMenuItems(formattedItems);
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: `Failed to load menu data: ${error.message}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCategoryAndItems();
+  }, [categoryId, toast]);
+  
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="pt-32 pb-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="mt-4">Loading menu items...</p>
+        </div>
+        <Footer />
+      </>
+    );
+  }
   
   if (!category) {
     return (
@@ -89,4 +174,4 @@ const MenuCategory: React.FC = () => {
   );
 };
 
-export default MenuCategory;
+export default MenuCategoryPage;

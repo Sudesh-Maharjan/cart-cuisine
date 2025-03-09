@@ -40,6 +40,14 @@ const About: React.FC = () => {
     const testimonials = document.querySelectorAll('.testimonial');
     testimonials.forEach(testimonial => observer.observe(testimonial));
 
+    // Immediately add fade-in-up class to all elements to ensure they're visible
+    // even if the IntersectionObserver doesn't trigger
+    setTimeout(() => {
+      document.querySelectorAll('.opacity-0').forEach(el => {
+        el.classList.add('fade-in-up');
+      });
+    }, 500);
+
     return () => observer.disconnect();
   }, []);
 
