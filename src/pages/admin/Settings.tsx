@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -140,12 +139,11 @@ const Settings: React.FC = () => {
             social_facebook: settings.social_facebook,
             social_instagram: settings.social_instagram,
             social_twitter: settings.social_twitter
-          }])
-          .select();
+          }]);
           
-        // Update the settings ID with the newly created one
-        if (response.data && response.data.length > 0) {
-          setSettings(prev => ({ ...prev, id: response.data[0].id }));
+        // Fetch the settings again to get the new ID
+        if (!response.error) {
+          await fetchSettings();
         }
       }
       

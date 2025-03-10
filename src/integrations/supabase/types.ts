@@ -374,6 +374,60 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_settings: {
+        Row: {
+          created_at: string | null
+          email_notifications: boolean | null
+          id: string
+          marketing_emails: boolean | null
+          order_confirmations: boolean | null
+          restaurant_address: string | null
+          restaurant_email: string | null
+          restaurant_name: string
+          restaurant_phone: string | null
+          social_facebook: string | null
+          social_instagram: string | null
+          social_twitter: string | null
+          updated_at: string | null
+          working_hours_weekday: string | null
+          working_hours_weekend: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          order_confirmations?: boolean | null
+          restaurant_address?: string | null
+          restaurant_email?: string | null
+          restaurant_name: string
+          restaurant_phone?: string | null
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_twitter?: string | null
+          updated_at?: string | null
+          working_hours_weekday?: string | null
+          working_hours_weekend?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          order_confirmations?: boolean | null
+          restaurant_address?: string | null
+          restaurant_email?: string | null
+          restaurant_name?: string
+          restaurant_phone?: string | null
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_twitter?: string | null
+          updated_at?: string | null
+          working_hours_weekday?: string | null
+          working_hours_weekend?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
