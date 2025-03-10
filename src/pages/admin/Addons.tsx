@@ -30,8 +30,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
-import { Edit, Trash, Plus } from 'lucide-react';
+import { Edit, Trash, Plus, Search, RefreshCw, Tag } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type Addon = {
   id: string;
@@ -50,6 +52,8 @@ const Addons: React.FC = () => {
     name: '',
     price: '',
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { toast } = useToast();
 
@@ -74,11 +78,28 @@ const Addons: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchAddons();
+    
+    // Set up real-time subscription for addons
+    const channel = supabase
+      .channel('public:item_addons')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'item_addons' 
+      }, () => {
+        fetchAddons();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,7 +145,6 @@ const Addons: React.FC = () => {
 
       setIsAddDialogOpen(false);
       resetForm();
-      fetchAddons();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -172,7 +192,6 @@ const Addons: React.FC = () => {
 
       setIsEditDialogOpen(false);
       resetForm();
-      fetchAddons();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -205,7 +224,6 @@ const Addons: React.FC = () => {
       });
 
       setIsDeleteDialogOpen(false);
-      fetchAddons();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -215,74 +233,133 @@ const Addons: React.FC = () => {
     }
   };
 
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchAddons();
+  };
+
+  // Filter addons based on search term
+  const filteredAddons = addons.filter(addon => 
+    addon.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Addons</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Addon
-        </Button>
-      </div>
+      <Card className="border-border/30 bg-card/30 backdrop-blur-sm shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold flex items-center">
+              <Tag className="mr-2 h-5 w-5 text-primary" />
+              Addons Manager
+            </CardTitle>
+            <Button onClick={() => setIsAddDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Addon
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search addons..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-background/50"
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex-shrink-0"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
 
-      {/* Addons Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : addons.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8">
-                  No addons found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              addons.map((addon) => (
-                <TableRow key={addon.id}>
-                  <TableCell className="font-medium">{addon.name}</TableCell>
-                  <TableCell>{formatCurrency(addon.price)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleEditClick(addon)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDeleteClick(addon)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {/* Addons Table */}
+          <div className="rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8">
+                      <div className="flex justify-center">
+                        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                      <div className="mt-2 text-muted-foreground">Loading addons...</div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredAddons.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8">
+                      {searchTerm ? (
+                        <div className="text-muted-foreground">No addons found matching "{searchTerm}"</div>
+                      ) : (
+                        <div className="text-muted-foreground">No addons available. Add your first addon to get started.</div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredAddons.map((addon) => (
+                    <TableRow key={addon.id} className="group">
+                      <TableCell className="font-medium">{addon.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20 border-primary/30">
+                          {formatCurrency(addon.price)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditClick(addon)}
+                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(addon)}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <div className="mt-4 text-xs text-muted-foreground">
+            Showing {filteredAddons.length} of {addons.length} addons
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add Addon Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px] bg-card border-border/30 shadow-xl">
           <DialogHeader>
-            <DialogTitle>Add Addon</DialogTitle>
+            <DialogTitle className="flex items-center">
+              <Plus className="mr-2 h-5 w-5 text-primary" />
+              Add New Addon
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -293,6 +370,7 @@ const Addons: React.FC = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Addon name"
+                className="bg-background/50"
               />
             </div>
             <div className="space-y-2">
@@ -306,6 +384,7 @@ const Addons: React.FC = () => {
                 value={formData.price}
                 onChange={handleInputChange}
                 placeholder="0.00"
+                className="bg-background/50"
               />
             </div>
           </div>
@@ -313,16 +392,19 @@ const Addons: React.FC = () => {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddAddon}>Add Addon</Button>
+            <Button onClick={handleAddAddon} className="bg-primary hover:bg-primary/90">Add Addon</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Addon Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px] bg-card border-border/30 shadow-xl">
           <DialogHeader>
-            <DialogTitle>Edit Addon</DialogTitle>
+            <DialogTitle className="flex items-center">
+              <Edit className="mr-2 h-5 w-5 text-primary" />
+              Edit Addon
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -333,6 +415,7 @@ const Addons: React.FC = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Addon name"
+                className="bg-background/50"
               />
             </div>
             <div className="space-y-2">
@@ -346,6 +429,7 @@ const Addons: React.FC = () => {
                 value={formData.price}
                 onChange={handleInputChange}
                 placeholder="0.00"
+                className="bg-background/50"
               />
             </div>
           </div>
@@ -353,16 +437,19 @@ const Addons: React.FC = () => {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateAddon}>Update Addon</Button>
+            <Button onClick={handleUpdateAddon} className="bg-primary hover:bg-primary/90">Update Addon</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border/30 shadow-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center">
+              <Trash className="mr-2 h-5 w-5 text-destructive" />
+              Delete Addon
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the addon "{currentAddon?.name}".
               This action cannot be undone.
@@ -370,7 +457,10 @@ const Addons: React.FC = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAddon}>
+            <AlertDialogAction 
+              onClick={handleDeleteAddon}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
