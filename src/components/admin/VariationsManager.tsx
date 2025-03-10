@@ -18,12 +18,12 @@ interface Variation {
 }
 
 interface VariationsManagerProps {
-  itemId: string;
-  isOpen: boolean;
+  menuItemId: string;
+  menuItemName: string;
   onClose: () => void;
 }
 
-const VariationsManager: React.FC<VariationsManagerProps> = ({ itemId, isOpen, onClose }) => {
+const VariationsManager: React.FC<VariationsManagerProps> = ({ menuItemId, menuItemName, onClose }) => {
   const [variations, setVariations] = useState<Variation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState<'add' | 'edit' | null>(null);
@@ -31,15 +31,15 @@ const VariationsManager: React.FC<VariationsManagerProps> = ({ itemId, isOpen, o
     id: '',
     name: '',
     price_adjustment: 0,
-    item_id: itemId
+    item_id: menuItemId
   });
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isOpen && itemId) {
+    if (menuItemId) {
       fetchVariations();
     }
-  }, [isOpen, itemId]);
+  }, [menuItemId]);
 
   const fetchVariations = async () => {
     try {
@@ -47,7 +47,7 @@ const VariationsManager: React.FC<VariationsManagerProps> = ({ itemId, isOpen, o
       const { data, error } = await supabase
         .from('item_variations')
         .select('*')
-        .eq('item_id', itemId);
+        .eq('item_id', menuItemId);
 
       if (error) throw error;
       setVariations(data || []);
@@ -67,7 +67,7 @@ const VariationsManager: React.FC<VariationsManagerProps> = ({ itemId, isOpen, o
       id: '',
       name: '',
       price_adjustment: 0,
-      item_id: itemId
+      item_id: menuItemId
     });
     setEditMode('add');
   };
@@ -122,7 +122,7 @@ const VariationsManager: React.FC<VariationsManagerProps> = ({ itemId, isOpen, o
             {
               name: currentVariation.name,
               price_adjustment: currentVariation.price_adjustment,
-              item_id: itemId
+              item_id: menuItemId
             }
           ])
           .select();
@@ -173,125 +173,118 @@ const VariationsManager: React.FC<VariationsManagerProps> = ({ itemId, isOpen, o
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] dark:bg-gray-800 dark:text-white border-border">
-        <DialogHeader>
-          <DialogTitle>Manage Variations</DialogTitle>
-          <DialogDescription className="dark:text-gray-400">
-            Add, edit or remove variations for this menu item.
-          </DialogDescription>
-        </DialogHeader>
-
-        {editMode ? (
-          <Card className="dark:bg-gray-700 border-border">
-            <CardContent className="pt-6 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="dark:text-white">Variation Name</Label>
-                <Input
-                  id="name"
-                  value={currentVariation.name}
-                  onChange={(e) => setCurrentVariation({ ...currentVariation, name: e.target.value })}
-                  placeholder="e.g. Large, Spicy, etc."
-                  className="dark:bg-gray-900 dark:text-white dark:border-gray-700"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="price_adjustment" className="dark:text-white">Price Adjustment</Label>
-                <Input
-                  id="price_adjustment"
-                  type="number"
-                  step="0.01"
-                  value={currentVariation.price_adjustment}
-                  onChange={(e) => setCurrentVariation({ ...currentVariation, price_adjustment: parseFloat(e.target.value) })}
-                  placeholder="Additional price"
-                  className="dark:bg-gray-900 dark:text-white dark:border-gray-700"
-                />
-              </div>
-              
-              <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setEditMode(null)}>
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveVariation}>
-                  Save Variation
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="flex justify-end mb-4">
-              <Button onClick={handleAddVariation}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Variation
-              </Button>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Variations for {menuItemName}</h2>
+      
+      {editMode ? (
+        <Card className="dark:bg-gray-700 border-border">
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="dark:text-white">Variation Name</Label>
+              <Input
+                id="name"
+                value={currentVariation.name}
+                onChange={(e) => setCurrentVariation({ ...currentVariation, name: e.target.value })}
+                placeholder="e.g. Large, Spicy, etc."
+                className="dark:bg-gray-900 dark:text-white dark:border-gray-700"
+              />
             </div>
             
-            {isLoading ? (
-              <div className="animate-pulse space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex justify-between p-3 border rounded">
-                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
-                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/4"></div>
-                  </div>
-                ))}
-              </div>
-            ) : variations.length > 0 ? (
-              <div className="border rounded-md dark:border-gray-700 overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/5 dark:bg-gray-900">
-                    <TableRow className="hover:bg-muted/10 dark:hover:bg-gray-800 dark:border-gray-700">
-                      <TableHead className="dark:text-gray-400">Name</TableHead>
-                      <TableHead className="dark:text-gray-400">Price Adjustment</TableHead>
-                      <TableHead className="text-right dark:text-gray-400">Actions</TableHead>
+            <div className="space-y-2">
+              <Label htmlFor="price_adjustment" className="dark:text-white">Price Adjustment</Label>
+              <Input
+                id="price_adjustment"
+                type="number"
+                step="0.01"
+                value={currentVariation.price_adjustment}
+                onChange={(e) => setCurrentVariation({ ...currentVariation, price_adjustment: parseFloat(e.target.value) })}
+                placeholder="Additional price"
+                className="dark:bg-gray-900 dark:text-white dark:border-gray-700"
+              />
+            </div>
+            
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setEditMode(null)}>
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              <Button onClick={handleSaveVariation}>
+                Save Variation
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="flex justify-end mb-4">
+            <Button onClick={handleAddVariation}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Variation
+            </Button>
+          </div>
+          
+          {isLoading ? (
+            <div className="animate-pulse space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex justify-between p-3 border rounded">
+                  <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+                  <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/4"></div>
+                </div>
+              ))}
+            </div>
+          ) : variations.length > 0 ? (
+            <div className="border rounded-md dark:border-gray-700 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/5 dark:bg-gray-900">
+                  <TableRow className="hover:bg-muted/10 dark:hover:bg-gray-800 dark:border-gray-700">
+                    <TableHead className="dark:text-gray-400">Name</TableHead>
+                    <TableHead className="dark:text-gray-400">Price Adjustment</TableHead>
+                    <TableHead className="text-right dark:text-gray-400">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {variations.map((variation) => (
+                    <TableRow key={variation.id} className="hover:bg-muted/10 dark:hover:bg-gray-800 dark:border-gray-700">
+                      <TableCell className="font-medium dark:text-white">{variation.name}</TableCell>
+                      <TableCell className="dark:text-white">
+                        {variation.price_adjustment > 0 ? '+' : ''}
+                        ${variation.price_adjustment.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditVariation(variation)}
+                          className="mr-2"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteVariation(variation.id)}
+                          className="text-destructive hover:text-destructive/90"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {variations.map((variation) => (
-                      <TableRow key={variation.id} className="hover:bg-muted/10 dark:hover:bg-gray-800 dark:border-gray-700">
-                        <TableCell className="font-medium dark:text-white">{variation.name}</TableCell>
-                        <TableCell className="dark:text-white">
-                          {variation.price_adjustment > 0 ? '+' : ''}
-                          ${variation.price_adjustment.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditVariation(variation)}
-                            className="mr-2"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteVariation(variation.id)}
-                            className="text-destructive hover:text-destructive/90"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No variations found. Click "Add Variation" to create one.
-              </div>
-            )}
-          </>
-        )}
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No variations found. Click "Add Variation" to create one.
+            </div>
+          )}
+        </>
+      )}
+      
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      </div>
+    </div>
   );
 };
 
