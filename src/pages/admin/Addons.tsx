@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
-import { Edit, Trash, Plus, Search, RefreshCw, Tag } from 'lucide-react';
+import { Edit, Trash, Plus, Search, RefreshCw, Tag, ArrowUpDown } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +54,8 @@ const Addons: React.FC = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sortField, setSortField] = useState<string>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const { toast } = useToast();
 
@@ -65,7 +67,7 @@ const Addons: React.FC = () => {
       const { data, error } = await supabase
         .from('item_addons')
         .select('*')
-        .order('name');
+        .order(sortField, { ascending: sortDirection === 'asc' });
         
       if (error) throw error;
       
@@ -100,7 +102,7 @@ const Addons: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [sortField, sortDirection]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -238,6 +240,15 @@ const Addons: React.FC = () => {
     fetchAddons();
   };
 
+  const handleSort = (field: string) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   // Filter addons based on search term
   const filteredAddons = addons.filter(addon => 
     addon.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -245,9 +256,9 @@ const Addons: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/30 bg-card/30 backdrop-blur-sm shadow-lg">
+      <Card className="border-border/30 bg-black/10 backdrop-blur-sm shadow-lg">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="text-2xl font-bold flex items-center">
               <Tag className="mr-2 h-5 w-5 text-primary" />
               Addons Manager
@@ -259,14 +270,14 @@ const Addons: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 flex items-center gap-4">
-            <div className="relative flex-1">
+          <div className="mb-6 flex flex-col md:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search addons..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background/50"
+                className="pl-10 bg-background/50 w-full"
               />
             </div>
             <Button 
@@ -285,9 +296,25 @@ const Addons: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead 
+                    className="cursor-pointer"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Name
+                      <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer"
+                    onClick={() => handleSort('price')}
+                  >
+                    <div className="flex items-center">
+                      Price
+                      <ArrowUpDown className="ml-2 h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -319,13 +346,13 @@ const Addons: React.FC = () => {
                           {formatCurrency(addon.price)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditClick(addon)}
-                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -333,7 +360,7 @@ const Addons: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteClick(addon)}
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           >
                             <Trash className="h-4 w-4" />
                           </Button>
@@ -354,7 +381,7 @@ const Addons: React.FC = () => {
 
       {/* Add Addon Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-card border-border/30 shadow-xl">
+        <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-md border-border/30 shadow-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Plus className="mr-2 h-5 w-5 text-primary" />
@@ -399,7 +426,7 @@ const Addons: React.FC = () => {
 
       {/* Edit Addon Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-card border-border/30 shadow-xl">
+        <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-md border-border/30 shadow-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Edit className="mr-2 h-5 w-5 text-primary" />
@@ -444,7 +471,7 @@ const Addons: React.FC = () => {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border/30 shadow-xl">
+        <AlertDialogContent className="bg-card/95 backdrop-blur-md border-border/30 shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center">
               <Trash className="mr-2 h-5 w-5 text-destructive" />

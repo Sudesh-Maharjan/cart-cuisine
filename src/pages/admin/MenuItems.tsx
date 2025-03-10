@@ -37,10 +37,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Edit, Trash, Plus, Tag, Eye } from 'lucide-react';
+import { 
+  Edit, 
+  Trash, 
+  Plus, 
+  Tag, 
+  Eye, 
+  Search, 
+  RefreshCw,
+  Filter,
+  ArrowUpDown,
+  Check
+} from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency } from '@/lib/utils';
+import VariationsManager from '@/components/admin/VariationsManager';
 
 type MenuItem = {
   id: string;
@@ -61,9 +85,11 @@ const MenuItems: React.FC = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isVariationsOpen, setIsVariationsOpen] = useState(false);
   const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -73,6 +99,10 @@ const MenuItems: React.FC = () => {
     image_url: '',
     is_available: true,
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortField, setSortField] = useState<string>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const { toast } = useToast();
 
@@ -94,7 +124,7 @@ const MenuItems: React.FC = () => {
       const { data: menuItemsData, error: menuItemsError } = await supabase
         .from('menu_items')
         .select('*')
-        .order('name');
+        .order(sortField, { ascending: sortDirection === 'asc' });
         
       if (menuItemsError) throw menuItemsError;
       setMenuItems(menuItemsData || []);
@@ -106,12 +136,34 @@ const MenuItems: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
+  // Setup real-time updates
   useEffect(() => {
     fetchData();
-  }, []);
+
+    // Set up real-time subscription for menu items
+    const channel = supabase
+      .channel('menu-items-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'menu_items' 
+        }, 
+        async () => {
+          console.log('Menu items change detected');
+          fetchData();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sortField, sortDirection]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -172,7 +224,6 @@ const MenuItems: React.FC = () => {
 
       setIsAddDialogOpen(false);
       resetForm();
-      fetchData();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -228,7 +279,6 @@ const MenuItems: React.FC = () => {
 
       setIsEditDialogOpen(false);
       resetForm();
-      fetchData();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -261,7 +311,6 @@ const MenuItems: React.FC = () => {
       });
 
       setIsDeleteDialogOpen(false);
-      fetchData();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -271,109 +320,226 @@ const MenuItems: React.FC = () => {
     }
   };
 
+  // Handle variations
+  const handleVariationsClick = (item: MenuItem) => {
+    setCurrentMenuItem(item);
+    setIsVariationsOpen(true);
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchData();
+  };
+
+  const handleSort = (field: string) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     return category ? category.name : 'Unknown';
   };
 
+  // Filter and sort menu items
+  const filteredItems = menuItems.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = selectedCategory === 'all' || item.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Menu Items</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Item
-        </Button>
-      </div>
+      <Card className="border-border/30 bg-black/10 backdrop-blur-sm">
+        <CardHeader className="space-y-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle className="text-2xl font-bold">Menu Items</CardTitle>
+            <Button 
+              onClick={() => setIsAddDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Item
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search menu items..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background/30 w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 bg-background/90 backdrop-blur-md border-border/30">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Filter by Category</h4>
+                        <Select 
+                          value={selectedCategory}
+                          onValueChange={(value) => setSelectedCategory(value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-10 w-10 shrink-0"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </div>
 
-      {/* Menu Items Table */}
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Available</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : menuItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  No menu items found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              menuItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{getCategoryName(item.category_id)}</TableCell>
-                  <TableCell>{formatCurrency(item.price)}</TableCell>
-                  <TableCell>
-                    <div className={`px-2 py-1 rounded-full text-xs inline-block ${
-                      item.is_available 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {item.is_available ? 'Yes' : 'No'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {}}
-                        title="View Item"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleEditClick(item)}
-                        title="Edit Item"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {}}
-                        title="Manage Variations"
-                      >
-                        <Tag className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDeleteClick(item)}
-                        title="Delete Item"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          {/* Menu Items Table */}
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
+                        Name
+                        <ArrowUpDown className="ml-2 h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort('price')}
+                    >
+                      <div className="flex items-center">
+                        Price
+                        <ArrowUpDown className="ml-2 h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Available</TableHead>
+                    <TableHead className="w-[180px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        No menu items found. {searchTerm ? 'Try a different search term.' : 'Add your first menu item to get started.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredItems.map((item) => (
+                      <TableRow key={item.id} className="group">
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{getCategoryName(item.category_id)}</TableCell>
+                        <TableCell>{formatCurrency(item.price)}</TableCell>
+                        <TableCell>
+                          <div className={`px-2 py-1 rounded-full text-xs inline-block ${
+                            item.is_available 
+                              ? 'bg-green-500/20 text-green-500 border border-green-500/50' 
+                              : 'bg-red-500/20 text-red-500 border border-red-500/50'
+                          }`}>
+                            {item.is_available ? 'Available' : 'Unavailable'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {}}
+                              title="View Item"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(item)}
+                              title="Edit Item"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleVariationsClick(item)}
+                              title="Manage Variations"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            >
+                              <Tag className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClick(item)}
+                              title="Delete Item"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <div className="mt-4 text-xs text-muted-foreground">
+            {filteredItems.length} items {filteredItems.length !== menuItems.length ? `(filtered from ${menuItems.length})` : ''}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add Menu Item Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[550px] bg-card/95 backdrop-blur-md border-border/30">
           <DialogHeader>
-            <DialogTitle>Add Menu Item</DialogTitle>
+            <DialogTitle className="flex items-center">
+              <Plus className="mr-2 h-5 w-5 text-primary" />
+              Add Menu Item
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -385,6 +551,7 @@ const MenuItems: React.FC = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Item name"
+                  className="bg-background/50"
                 />
               </div>
               <div className="space-y-2">
@@ -398,6 +565,7 @@ const MenuItems: React.FC = () => {
                   value={formData.price}
                   onChange={handleInputChange}
                   placeholder="0.00"
+                  className="bg-background/50"
                 />
               </div>
             </div>
@@ -407,7 +575,7 @@ const MenuItems: React.FC = () => {
                 value={formData.category_id} 
                 onValueChange={(value) => handleSelectChange(value, 'category_id')}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background/50">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -428,6 +596,7 @@ const MenuItems: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Item description"
                 rows={3}
+                className="bg-background/50 min-h-20"
               />
             </div>
             <div className="space-y-2">
@@ -438,6 +607,7 @@ const MenuItems: React.FC = () => {
                 value={formData.image_url}
                 onChange={handleInputChange}
                 placeholder="Image URL"
+                className="bg-background/50"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -453,16 +623,19 @@ const MenuItems: React.FC = () => {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddMenuItem}>Add Item</Button>
+            <Button onClick={handleAddMenuItem} className="bg-primary">Add Item</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Menu Item Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[550px] bg-card/95 backdrop-blur-md border-border/30">
           <DialogHeader>
-            <DialogTitle>Edit Menu Item</DialogTitle>
+            <DialogTitle className="flex items-center">
+              <Edit className="mr-2 h-5 w-5 text-primary" />
+              Edit Menu Item
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -474,6 +647,7 @@ const MenuItems: React.FC = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Item name"
+                  className="bg-background/50"
                 />
               </div>
               <div className="space-y-2">
@@ -487,6 +661,7 @@ const MenuItems: React.FC = () => {
                   value={formData.price}
                   onChange={handleInputChange}
                   placeholder="0.00"
+                  className="bg-background/50"
                 />
               </div>
             </div>
@@ -496,7 +671,7 @@ const MenuItems: React.FC = () => {
                 value={formData.category_id} 
                 onValueChange={(value) => handleSelectChange(value, 'category_id')}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background/50">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -517,6 +692,7 @@ const MenuItems: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Item description"
                 rows={3}
+                className="bg-background/50 min-h-20"
               />
             </div>
             <div className="space-y-2">
@@ -527,6 +703,7 @@ const MenuItems: React.FC = () => {
                 value={formData.image_url}
                 onChange={handleInputChange}
                 placeholder="Image URL"
+                className="bg-background/50"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -542,16 +719,19 @@ const MenuItems: React.FC = () => {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateMenuItem}>Update Item</Button>
+            <Button onClick={handleUpdateMenuItem} className="bg-primary">Update Item</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card/95 backdrop-blur-md border-border/30">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center">
+              <Trash className="mr-2 h-5 w-5 text-destructive" />
+              Confirm Deletion
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the menu item "{currentMenuItem?.name}".
               This action cannot be undone.
@@ -559,12 +739,34 @@ const MenuItems: React.FC = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMenuItem}>
+            <AlertDialogAction 
+              onClick={handleDeleteMenuItem}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Variations Manager Dialog */}
+      <Dialog open={isVariationsOpen} onOpenChange={setIsVariationsOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-md border-border/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Tag className="mr-2 h-5 w-5 text-primary" />
+              Manage Variations for {currentMenuItem?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {currentMenuItem && (
+            <VariationsManager 
+              menuItemId={currentMenuItem.id} 
+              menuItemName={currentMenuItem.name}
+              onClose={() => setIsVariationsOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
