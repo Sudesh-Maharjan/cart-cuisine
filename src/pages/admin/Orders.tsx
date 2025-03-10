@@ -58,7 +58,7 @@ const Orders: React.FC = () => {
       // For each order, fetch user profile if available
       const ordersWithUserData = await Promise.all(
         ordersData.map(async (order) => {
-          let userEmail = '';
+          let userEmail = 'No email available';
           let username = 'Guest';
           
           if (order.user_id) {
@@ -70,8 +70,6 @@ const Orders: React.FC = () => {
               
             if (!profileError && profileData) {
               username = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim();
-              // Since email is not in profiles table, use a placeholder or fetch from auth if needed
-              userEmail = 'No email available';
             }
           }
           
@@ -104,6 +102,40 @@ const Orders: React.FC = () => {
   
   useEffect(() => {
     fetchOrders();
+    
+    // Set up real-time subscription for new orders
+    const channel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'orders' 
+        }, 
+        async (payload) => {
+          console.log('Orders change received:', payload);
+          
+          // Show notification for new orders
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: 'New Order',
+              description: `Order #${payload.new.id.slice(0, 8)}... received!`,
+              variant: 'default',
+            });
+            
+            // Update UI with the latest orders
+            await fetchOrders();
+          } else if (payload.eventType === 'UPDATE') {
+            // Refresh orders list when updates happen
+            await fetchOrders();
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [toast]);
   
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -149,72 +181,74 @@ const Orders: React.FC = () => {
         </Button>
       </div>
       
-      <Card>
-        <CardHeader>
+      <Card className="bg-card text-card-foreground dark border border-border">
+        <CardHeader className="bg-muted/10 border-b border-border">
           <CardTitle>Recent Orders</CardTitle>
           <CardDescription>Manage customer orders and update their status</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : orders.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map(order => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
-                    <TableCell>{format(new Date(order.created_at), 'MMM dd, yyyy HH:mm')}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div>{order.username || 'Guest'}</div>
-                        <div className="text-xs text-muted-foreground">{order.user_email || ''}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.items_count || 0}</TableCell>
-                    <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                    <TableCell>
-                      <Select
-                        defaultValue={order.status}
-                        onValueChange={(value) => updateOrderStatus(order.id, value)}
-                      >
-                        <SelectTrigger className="w-[130px]">
-                          <SelectValue>
-                            <Badge className={statusColors[order.status as OrderStatus]}>
-                              {order.status}
-                            </Badge>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="preparing">Preparing</SelectItem>
-                          <SelectItem value="ready">Ready</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon">
-                        <Eye size={16} />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/5">
+                  <TableRow className="hover:bg-muted/10 border-b border-border">
+                    <TableHead className="text-muted-foreground font-semibold">Order ID</TableHead>
+                    <TableHead className="text-muted-foreground font-semibold">Date</TableHead>
+                    <TableHead className="text-muted-foreground font-semibold">Customer</TableHead>
+                    <TableHead className="text-muted-foreground font-semibold">Items</TableHead>
+                    <TableHead className="text-muted-foreground font-semibold">Total</TableHead>
+                    <TableHead className="text-muted-foreground font-semibold">Status</TableHead>
+                    <TableHead className="text-muted-foreground font-semibold">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {orders.map(order => (
+                    <TableRow key={order.id} className="hover:bg-muted/10 border-b border-border">
+                      <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
+                      <TableCell>{format(new Date(order.created_at), 'MMM dd, yyyy HH:mm')}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div>{order.username || 'Guest'}</div>
+                          <div className="text-xs text-muted-foreground">{order.user_email || ''}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{order.items_count || 0}</TableCell>
+                      <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                      <TableCell>
+                        <Select
+                          defaultValue={order.status}
+                          onValueChange={(value) => updateOrderStatus(order.id, value)}
+                        >
+                          <SelectTrigger className="w-[130px]">
+                            <SelectValue>
+                              <Badge className={statusColors[order.status as OrderStatus]}>
+                                {order.status}
+                              </Badge>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="preparing">Preparing</SelectItem>
+                            <SelectItem value="ready">Ready</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon">
+                          <Eye size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No orders found

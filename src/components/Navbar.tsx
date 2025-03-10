@@ -1,17 +1,35 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Menu, X, User } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  Menu, 
+  X, 
+  User, 
+  LogOut, 
+  Settings, 
+  LayoutDashboard 
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, profile, logout } = useAuth();
+  const { user, profile, logout, isAdmin } = useAuth();
   const { cartItems } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Handle scroll effect
   useEffect(() => {
@@ -36,6 +54,11 @@ const Navbar: React.FC = () => {
   const displayName = profile ? 
     `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
     'User';
+    
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
   
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -65,11 +88,41 @@ const Navbar: React.FC = () => {
             
             {user ? (
               <div className="flex items-center space-x-4">
-                <Link to="/profile" className="flex items-center space-x-2 hover:text-restaurant-primary">
-                  <User size={20} />
-                  <span>{displayName}</span>
-                </Link>
-                <Button variant="outline" onClick={logout}>Logout</Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2 p-0">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src="/avatar.png" />
+                        <AvatarFallback className="bg-restaurant-primary/20">
+                          {profile?.first_name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{displayName}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User size={16} className="mr-2" />
+                      Profile
+                    </DropdownMenuItem>
+                    
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
+                        <LayoutDashboard size={16} className="mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    )}
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut size={16} className="mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Link to="/login">
@@ -125,11 +178,33 @@ const Navbar: React.FC = () => {
             
             {user ? (
               <div className="space-y-2">
-                <Link to="/profile" className="flex items-center space-x-2 py-2 hover:text-restaurant-primary">
-                  <User size={20} />
-                  <span>{displayName}</span>
+                <div className="flex items-center space-x-2 py-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="/avatar.png" />
+                    <AvatarFallback className="bg-restaurant-primary/20">
+                      {profile?.first_name?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{displayName}</span>
+                </div>
+                
+                <Link to="/profile" className="block py-2 pl-10 hover:text-restaurant-primary">
+                  Profile
                 </Link>
-                <Button variant="outline" onClick={logout} className="w-full">Logout</Button>
+                
+                {isAdmin && (
+                  <Link to="/admin/dashboard" className="block py-2 pl-10 hover:text-restaurant-primary">
+                    Admin Dashboard
+                  </Link>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout} 
+                  className="w-full mt-2"
+                >
+                  Logout
+                </Button>
               </div>
             ) : (
               <Link to="/login" className="block">
