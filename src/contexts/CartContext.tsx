@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { ItemCustomization } from '@/components/MenuItemCard';
 
 // Types
 export type MenuItem = {
@@ -10,6 +11,7 @@ export type MenuItem = {
   price: number;
   image: string;
   category: string;
+  customization?: ItemCustomization;
 };
 
 export type CartItem = {
@@ -26,6 +28,7 @@ type CartContextType = {
   subtotal: number;
   tax: number;
   total: number;
+  reorderFromPrevious: (orderId: string) => Promise<void>;
 };
 
 // Create context with default values
@@ -37,7 +40,8 @@ const CartContext = createContext<CartContextType>({
   clearCart: () => {},
   subtotal: 0,
   tax: 0,
-  total: 0
+  total: 0,
+  reorderFromPrevious: async () => {}
 });
 
 export const useCart = () => useContext(CartContext);
@@ -50,7 +54,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Failed to parse cart from localStorage', e);
+      }
     }
   }, []);
 
@@ -77,9 +85,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
     
+    // Prepare customization details for toast message
+    let customizationDesc = '';
+    if (menuItem.customization) {
+      if (menuItem.customization.variation) {
+        customizationDesc += `Size: ${menuItem.customization.variation.name}, `;
+      }
+      if (menuItem.customization.addons && menuItem.customization.addons.length > 0) {
+        customizationDesc += `Add-ons: ${menuItem.customization.addons.map(a => a.name).join(', ')}`;
+      }
+    }
+    
     toast({
       title: "Added to cart",
-      description: `${quantity} × ${menuItem.name} added to your cart.`,
+      description: `${quantity} × ${menuItem.name}${customizationDesc ? ` (${customizationDesc})` : ''} added to your cart.`,
     });
   };
 
@@ -108,6 +127,67 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     setCartItems([]);
   };
+  
+  // Reorder function to add all items from a previous order
+  const reorderFromPrevious = async (orderId: string) => {
+    try {
+      // Get order items from the given order ID
+      const { data: orderItems, error: orderItemsError } = await fetch('/api/orders/' + orderId)
+        .then(res => res.json());
+      
+      if (orderItemsError) throw new Error(orderItemsError.message);
+      
+      if (orderItems && orderItems.length > 0) {
+        // Clear existing cart first
+        clearCart();
+        
+        // Add each item to cart
+        orderItems.forEach((item: any) => {
+          const menuItem: MenuItem = {
+            id: item.item_id,
+            name: item.name || 'Unknown Item',
+            description: item.description || '',
+            price: item.price,
+            image: item.image_url || '/placeholder.svg',
+            category: item.category_id || '',
+            customization: {
+              addons: item.addons || []
+            }
+          };
+          
+          if (item.variation_id) {
+            if (menuItem.customization) {
+              menuItem.customization.variation = {
+                id: item.variation_id,
+                name: item.variation_name || 'Variation',
+                price_adjustment: item.variation_price_adjustment || 0
+              };
+            }
+          }
+          
+          addToCart(menuItem, item.quantity);
+        });
+        
+        toast({
+          title: 'Order Added',
+          description: 'Your previous order has been added to cart',
+        });
+      } else {
+        toast({
+          title: 'Empty Order',
+          description: 'This order contains no items',
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to reorder:', error);
+      toast({
+        title: 'Reorder Failed',
+        description: error.message || 'Could not add previous order items to cart',
+        variant: 'destructive'
+      });
+    }
+  };
 
   // Calculate subtotal, tax, and total
   const subtotal = cartItems.reduce(
@@ -127,7 +207,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         subtotal,
         tax,
-        total
+        total,
+        reorderFromPrevious
       }}
     >
       {children}

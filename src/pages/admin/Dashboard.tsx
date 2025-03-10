@@ -58,6 +58,8 @@ const AdminDashboard: React.FC = () => {
   const [topSellingItems, setTopSellingItems] = useState<TopSellingItem[]>([]);
   const [monthlySales, setMonthlySales] = useState<MonthlySales[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [upcomingReservations, setUpcomingReservations] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -137,17 +139,57 @@ const AdminDashboard: React.FC = () => {
           setTopSellingItems(topItems);
         }
         
-        // Generate monthly sales data (for demo, since we might not have enough real data)
-        const lastSixMonths = Array.from({ length: 6 }, (_, i) => {
+        // Get monthly sales data
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
-          return {
+          
+          const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+          const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          
+          const { data: monthOrders, error: monthError } = await supabase
+            .from('orders')
+            .select('total_amount')
+            .gte('created_at', startOfMonth.toISOString())
+            .lte('created_at', endOfMonth.toISOString());
+          
+          if (monthError) throw monthError;
+          
+          const monthlyRevenue = monthOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+          
+          last6Months.push({
             month: date.toLocaleString('default', { month: 'short' }),
-            revenue: Math.floor(Math.random() * 10000) + 1000 // Random revenue for demo
-          };
-        }).reverse();
+            revenue: monthlyRevenue
+          });
+        }
         
-        setMonthlySales(lastSixMonths);
+        setMonthlySales(last6Months);
+        
+        // Get recent orders
+        const { data: recentOrdersData, error: recentOrdersError } = await supabase
+          .from('orders')
+          .select('id, total_amount, status, created_at, user_id')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (recentOrdersError) throw recentOrdersError;
+        setRecentOrders(recentOrdersData || []);
+        
+        // Get upcoming reservations
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const { data: reservationsData, error: upcomingResError } = await supabase
+          .from('reservations')
+          .select('id, name, date, time, guests, status')
+          .gte('date', today.toISOString().split('T')[0])
+          .order('date', { ascending: true })
+          .order('time', { ascending: true })
+          .limit(5);
+        
+        if (upcomingResError) throw upcomingResError;
+        setUpcomingReservations(reservationsData || []);
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
         toast({
@@ -251,7 +293,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold dark:text-white">Dashboard</h1>
+      <h1 className="text-3xl font-bold text-white">Dashboard</h1>
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -287,19 +329,19 @@ const AdminDashboard: React.FC = () => {
       
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="dark:bg-gray-800 dark:text-white border-border">
+        <Card className="bg-gray-800 text-white border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center">
               <TrendingUp className="mr-2 h-5 w-5" />
               Monthly Sales
             </CardTitle>
-            <CardDescription className="dark:text-gray-400">Revenue over the last 6 months</CardDescription>
+            <CardDescription className="text-gray-400">Revenue over the last 6 months</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-80">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="animate-pulse bg-gray-300 dark:bg-gray-700 w-full h-full rounded-lg"></div>
+                  <div className="animate-pulse bg-gray-700 w-full h-full rounded-lg"></div>
                 </div>
               ) : (
                 <Line data={monthlySalesChartData} options={chartOptions} />
@@ -308,24 +350,24 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card className="dark:bg-gray-800 dark:text-white border-border">
+        <Card className="bg-gray-800 text-white border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center">
               <ShoppingBag className="mr-2 h-5 w-5" />
               Top Selling Items
             </CardTitle>
-            <CardDescription className="dark:text-gray-400">Most popular menu items by quantity sold</CardDescription>
+            <CardDescription className="text-gray-400">Most popular menu items by quantity sold</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-80">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="animate-pulse bg-gray-300 dark:bg-gray-700 w-full h-full rounded-lg"></div>
+                  <div className="animate-pulse bg-gray-700 w-full h-full rounded-lg"></div>
                 </div>
               ) : topSellingItems.length > 0 ? (
                 <Bar data={topSellingItemsChartData} options={chartOptions} />
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="flex items-center justify-center h-full text-gray-400">
                   No sales data available
                 </div>
               )}
@@ -336,44 +378,88 @@ const AdminDashboard: React.FC = () => {
       
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="dark:bg-gray-800 dark:text-white border-border">
+        <Card className="bg-gray-800 text-white border-gray-700">
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
-            <CardDescription className="dark:text-gray-400">Latest customer orders</CardDescription>
+            <CardDescription className="text-gray-400">Latest customer orders</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="animate-pulse space-y-3">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="flex justify-between">
-                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
-                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-5 bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-5 bg-gray-700 rounded w-1/4"></div>
+                  </div>
+                ))}
+              </div>
+            ) : recentOrders.length > 0 ? (
+              <div className="space-y-3">
+                {recentOrders.map((order) => (
+                  <div key={order.id} className="flex justify-between items-center p-2 hover:bg-gray-700 rounded">
+                    <div>
+                      <p className="text-sm font-medium">Order #{order.id.slice(0, 8)}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{formatCurrency(order.total_amount)}</p>
+                      <p className={`text-xs ${
+                        order.status === 'completed' ? 'text-green-400' : 
+                        order.status === 'pending' ? 'text-yellow-400' : 'text-gray-400'
+                      }`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">No recent orders found.</p>
+              <p className="text-gray-400">No recent orders found.</p>
             )}
           </CardContent>
         </Card>
         
-        <Card className="dark:bg-gray-800 dark:text-white border-border">
+        <Card className="bg-gray-800 text-white border-gray-700">
           <CardHeader>
             <CardTitle>Upcoming Reservations</CardTitle>
-            <CardDescription className="dark:text-gray-400">Today's reservations</CardDescription>
+            <CardDescription className="text-gray-400">Today's reservations</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="animate-pulse space-y-3">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="flex justify-between">
-                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
-                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-5 bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-5 bg-gray-700 rounded w-1/4"></div>
+                  </div>
+                ))}
+              </div>
+            ) : upcomingReservations.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingReservations.map((reservation) => (
+                  <div key={reservation.id} className="flex justify-between items-center p-2 hover:bg-gray-700 rounded">
+                    <div>
+                      <p className="text-sm font-medium">{reservation.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(reservation.date).toLocaleDateString()} at {reservation.time}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{reservation.guests} guests</p>
+                      <p className={`text-xs ${
+                        reservation.status === 'confirmed' ? 'text-green-400' : 
+                        reservation.status === 'pending' ? 'text-yellow-400' : 'text-gray-400'
+                      }`}>
+                        {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">No upcoming reservations.</p>
+              <p className="text-gray-400">No upcoming reservations.</p>
             )}
           </CardContent>
         </Card>
@@ -392,23 +478,23 @@ interface DashboardCardProps {
 
 const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, description, icon, loading = false }) => {
   return (
-    <Card className="dark:bg-gray-800 dark:text-white border-border">
+    <Card className="bg-gray-800 text-white border-gray-700">
       <CardContent className="pt-6">
         {loading ? (
           <div className="animate-pulse flex items-center justify-between">
             <div>
-              <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-24 mb-2"></div>
-              <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-16 mb-1"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-32"></div>
+              <div className="h-5 bg-gray-700 rounded w-24 mb-2"></div>
+              <div className="h-8 bg-gray-700 rounded w-16 mb-1"></div>
+              <div className="h-4 bg-gray-700 rounded w-32"></div>
             </div>
-            <div className="h-8 w-8 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+            <div className="h-8 w-8 bg-gray-700 rounded-full"></div>
           </div>
         ) : (
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">{title}</p>
-              <p className="text-3xl font-bold dark:text-white">{value}</p>
-              <p className="text-xs text-muted-foreground dark:text-gray-400 mt-1">{description}</p>
+              <p className="text-sm font-medium text-gray-400">{title}</p>
+              <p className="text-3xl font-bold text-white">{value}</p>
+              <p className="text-xs text-gray-400 mt-1">{description}</p>
             </div>
             {icon}
           </div>

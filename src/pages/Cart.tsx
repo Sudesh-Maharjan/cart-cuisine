@@ -16,7 +16,8 @@ import {
   CreditCard,
   Clock,
   Check,
-  Info
+  Info,
+  ArrowRight
 } from 'lucide-react';
 import { 
   Accordion,
@@ -24,15 +25,48 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { loadStripe } from '@stripe/stripe-js';
+import { supabase } from '@/integrations/supabase/client';
+
+const stripePromise = loadStripe('pk_test_51OrGXqSHGwq6QsF51l3yElJnY31T82CQHI8Q2CsheFUxMU2lZDfdYyojHvqMvNuxnAxEVJKfjbzpZzbGJLnkuXxZ00XqcTW0t3');
+
+interface CheckoutStep {
+  id: string;
+  label: string;
+  component: React.ReactNode;
+}
 
 const Cart: React.FC = () => {
   const { cartItems, removeFromCart, updateQuantity, subtotal, tax, total, clearCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [animatedItems, setAnimatedItems] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [paymentIntent, setPaymentIntent] = useState<string | null>(null);
+  const [shippingAddress, setShippingAddress] = useState({
+    address: profile?.address || '',
+    city: '',
+    state: '',
+    zipCode: '',
+    phone: profile?.phone || ''
+  });
+  const [notes, setNotes] = useState('');
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   
   useEffect(() => {
     // Animate cart items one by one
@@ -55,6 +89,16 @@ const Cart: React.FC = () => {
     return () => clearTimeout(timer);
   }, [cartItems]);
   
+  const handleRemoveItem = (id: string) => {
+    // Animate item removal by removing it from animated items first
+    setAnimatedItems(prev => prev.filter(itemId => itemId !== id));
+    
+    // Then remove from cart after animation
+    setTimeout(() => {
+      removeFromCart(id);
+    }, 300);
+  };
+  
   const handleCheckout = () => {
     if (!isAuthenticated) {
       toast({
@@ -66,30 +110,271 @@ const Cart: React.FC = () => {
       return;
     }
     
-    setIsProcessing(true);
-    
-    // Simulate processing time
-    setTimeout(() => {
+    if (cartItems.length === 0) {
       toast({
-        title: 'Order Placed Successfully!',
-        description: 'Your order has been received and is being processed.',
+        title: 'Empty Cart',
+        description: 'Please add items to your cart before checkout.',
+        variant: 'destructive',
       });
-      
-      clearCart();
-      setIsProcessing(false);
-      navigate('/order-success');
-    }, 2000);
+      return;
+    }
+    
+    setCheckoutModalOpen(true);
   };
 
-  const handleRemoveItem = (id: string) => {
-    // Animate item removal by removing it from animated items first
-    setAnimatedItems(prev => prev.filter(itemId => itemId !== id));
-    
-    // Then remove from cart after animation
-    setTimeout(() => {
-      removeFromCart(id);
-    }, 300);
+  const nextStep = () => {
+    if (currentStep < checkoutSteps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
   };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+  
+  const handlePaymentWithStripe = async () => {
+    try {
+      setIsProcessing(true);
+      
+      // Create an order in the database
+      const orderData = {
+        user_id: profile?.id,
+        total_amount: total,
+        status: 'pending'
+      };
+      
+      const { data: orderResult, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
+      
+      if (orderError) throw orderError;
+      
+      if (!orderResult) throw new Error("Failed to create order");
+      
+      const orderId = orderResult.id;
+      setOrderId(orderId);
+      
+      // Add order items
+      const orderItems = cartItems.map(item => {
+        const orderItem = {
+          order_id: orderId,
+          item_id: item.menuItem.id,
+          quantity: item.quantity,
+          price: item.menuItem.price,
+          notes: notes,
+          variation_id: item.menuItem.customization?.variation?.id || null
+        };
+        return orderItem;
+      });
+      
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+      
+      if (itemsError) throw itemsError;
+      
+      // Create a Stripe payment intent
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Failed to load Stripe");
+      
+      // In a real app, you would create a payment intent on the server
+      // This is a simplified example for demonstration purposes
+      const { error } = await stripe.redirectToCheckout({
+        lineItems: cartItems.map(item => ({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: item.menuItem.name,
+              images: [item.menuItem.image]
+            },
+            unit_amount: Math.round(item.menuItem.price * 100), // Stripe takes amount in cents
+          },
+          quantity: item.quantity,
+        })),
+        mode: 'payment',
+        successUrl: `${window.location.origin}/order-success?order_id=${orderId}`,
+        cancelUrl: `${window.location.origin}/cart`,
+      });
+      
+      if (error) throw error;
+      
+      // For demo purposes, simulate a successful order
+      setTimeout(() => {
+        setPaymentCompleted(true);
+        setIsProcessing(false);
+        clearCart();
+        
+        // Update order status to completed
+        supabase
+          .from('orders')
+          .update({ status: 'completed' })
+          .eq('id', orderId)
+          .then(() => {
+            toast({
+              title: 'Order Placed Successfully!',
+              description: 'Your order has been received and is being processed.',
+            });
+            
+            navigate('/order-success', { 
+              state: { 
+                orderId,
+                total: total
+              } 
+            });
+          });
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      setIsProcessing(false);
+      toast({
+        title: 'Payment Failed',
+        description: error.message || 'An error occurred during checkout',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const checkoutSteps: CheckoutStep[] = [
+    {
+      id: 'delivery',
+      label: 'Delivery Information',
+      component: (
+        <div className="space-y-4 p-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Address</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                value={shippingAddress.address}
+                onChange={(e) => setShippingAddress({ ...shippingAddress, address: e.target.value })}
+                placeholder="Delivery address"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Phone</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                value={shippingAddress.phone}
+                onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
+                placeholder="Contact phone"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium">Delivery Notes</label>
+            <textarea
+              className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Special instructions for delivery"
+              rows={3}
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'review',
+      label: 'Review Order',
+      component: (
+        <div className="space-y-4 p-2">
+          <h3 className="font-medium text-lg">Order Summary</h3>
+          
+          <div className="max-h-60 overflow-y-auto border rounded-md p-2 dark:border-gray-700">
+            {cartItems.map((item) => (
+              <div key={item.menuItem.id} className="flex justify-between py-2 border-b dark:border-gray-700">
+                <div>
+                  <p className="font-medium">{item.quantity} × {item.menuItem.name}</p>
+                  {item.menuItem.customization && (
+                    <div className="text-xs text-muted-foreground">
+                      {item.menuItem.customization.variation && (
+                        <p>Size: {item.menuItem.customization.variation.name}</p>
+                      )}
+                      {item.menuItem.customization.addons && item.menuItem.customization.addons.length > 0 && (
+                        <p>Add-ons: {item.menuItem.customization.addons.map(a => a.name).join(', ')}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <p>{formatCurrency(item.menuItem.price * item.quantity)}</p>
+              </div>
+            ))}
+          </div>
+          
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tax (8%)</span>
+              <span>{formatCurrency(tax)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-base pt-2 border-t dark:border-gray-700">
+              <span>Total</span>
+              <span>{formatCurrency(total)}</span>
+            </div>
+          </div>
+          
+          <div className="bg-muted/30 p-3 rounded-md">
+            <h4 className="font-medium mb-1">Delivery Information</h4>
+            <p className="text-sm">{shippingAddress.address || 'No address provided'}</p>
+            <p className="text-sm">{shippingAddress.phone || 'No phone provided'}</p>
+            {notes && <p className="text-sm mt-2">Notes: {notes}</p>}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'payment',
+      label: 'Payment',
+      component: (
+        <div className="space-y-6 p-2">
+          <div className="bg-muted/30 p-4 rounded-md text-center">
+            <p className="font-medium mb-2">Total: {formatCurrency(total)}</p>
+            <p className="text-sm text-muted-foreground mb-4">Please complete your payment to finish your order</p>
+            
+            <Button 
+              onClick={handlePaymentWithStripe}
+              disabled={isProcessing}
+              className="w-full bg-primary hover:bg-primary/90"
+            >
+              {isProcessing ? (
+                <>
+                  <Clock size={18} className="mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard size={18} className="mr-2" />
+                  Pay with Stripe
+                </>
+              )}
+            </Button>
+            
+            {paymentCompleted && (
+              <div className="mt-4 p-3 bg-green-500/10 text-green-500 rounded-md">
+                <Check size={18} className="mx-auto mb-2" />
+                Payment successful! Your order has been placed.
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground mt-4">
+              This is a demo store using Stripe in test mode. No real payments will be processed.
+            </p>
+          </div>
+        </div>
+      )
+    }
+  ];
   
   return (
     <>
@@ -131,6 +416,31 @@ const Cart: React.FC = () => {
                               <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
                                 {item.menuItem.description}
                               </p>
+                              
+                              {/* Customization details */}
+                              {item.menuItem.customization && (
+                                <div className="mt-2 space-y-1">
+                                  {item.menuItem.customization.variation && (
+                                    <Badge variant="outline" className="mr-2">
+                                      {item.menuItem.customization.variation.name} 
+                                      {item.menuItem.customization.variation.price_adjustment > 0 && 
+                                        ` (+${formatCurrency(item.menuItem.customization.variation.price_adjustment)})`}
+                                    </Badge>
+                                  )}
+                                  
+                                  {item.menuItem.customization.addons && 
+                                   item.menuItem.customization.addons.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {item.menuItem.customization.addons.map(addon => (
+                                        <Badge key={addon.id} variant="outline" className="bg-primary/5">
+                                          {addon.name} (+{formatCurrency(addon.price)})
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
                               <p className="text-primary font-medium mt-2">
                                 {formatCurrency(item.menuItem.price)}
                               </p>
@@ -217,7 +527,7 @@ const Cart: React.FC = () => {
                 <Button 
                   className="w-full bg-primary hover:bg-primary/90 mb-4"
                   onClick={handleCheckout}
-                  disabled={isProcessing}
+                  disabled={isProcessing || cartItems.length === 0}
                 >
                   {isProcessing ? (
                     <>
@@ -300,6 +610,62 @@ const Cart: React.FC = () => {
           )}
         </div>
       </section>
+      
+      {/* Checkout Modal */}
+      <Dialog open={checkoutModalOpen} onOpenChange={setCheckoutModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>Checkout</span>
+              <Badge variant="outline" className="ml-2">Step {currentStep + 1}/{checkoutSteps.length}</Badge>
+            </DialogTitle>
+            <DialogDescription>
+              Complete your order in just a few steps
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex mb-4">
+            {checkoutSteps.map((step, index) => (
+              <React.Fragment key={step.id}>
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                    index <= currentStep ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <span className="text-xs mt-1 text-center">{step.label}</span>
+                </div>
+                
+                {index < checkoutSteps.length - 1 && (
+                  <div className="flex-1 flex items-center">
+                    <Separator className={index < currentStep ? 'bg-primary' : 'bg-muted'} />
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          
+          <div className="py-2">
+            {checkoutSteps[currentStep].component}
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            <Button 
+              variant="outline" 
+              onClick={currentStep === 0 ? () => setCheckoutModalOpen(false) : prevStep}
+            >
+              {currentStep === 0 ? 'Cancel' : 'Back'}
+            </Button>
+            
+            {currentStep < checkoutSteps.length - 1 ? (
+              <Button onClick={nextStep} className="gap-2">
+                Next
+                <ArrowRight size={16} />
+              </Button>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <Footer />
     </>

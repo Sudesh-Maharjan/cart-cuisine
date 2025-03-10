@@ -24,6 +24,11 @@ type Addon = {
   price: number;
 };
 
+export interface ItemCustomization {
+  variation?: { id: string; name: string; price_adjustment: number } | null;
+  addons: { id: string; name: string; price: number }[];
+}
+
 const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }) => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -89,27 +94,34 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
     // Calculate the final price with selected options
     let finalPrice = item.price;
     
-    // Add variation price adjustment if selected
+    // Get selected variation details
+    let variationDetails = null;
     if (selectedVariation) {
       const variation = variations.find(v => v.id === selectedVariation);
       if (variation) {
         finalPrice += variation.price_adjustment;
+        variationDetails = variation;
       }
     }
     
-    // Add addon prices
+    // Get selected addon details
+    const addonDetails: Addon[] = [];
     selectedAddons.forEach(addonId => {
       const addon = addons.find(a => a.id === addonId);
       if (addon) {
         finalPrice += addon.price;
+        addonDetails.push(addon);
       }
     });
     
     // Create a customized menu item with selected options
-    const customizedItem: MenuItem = {
+    const customizedItem: MenuItem & { customization?: ItemCustomization } = {
       ...item,
       price: finalPrice,
-      // We could add selected options info here if needed for display in cart
+      customization: {
+        variation: variationDetails,
+        addons: addonDetails
+      }
     };
     
     console.log('Adding to cart:', customizedItem);
