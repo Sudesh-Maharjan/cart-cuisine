@@ -37,13 +37,13 @@ type Order = {
   order_number?: string;
 };
 
-type OrderItem = {
+interface OrderItemBase {
   id: string;
   order_id: string;
   item_id: string;
   quantity: number;
   price: number;
-  variation_id?: string; // Added this property to fix the TypeScript error
+  variation_id?: string; // This needs to be included
   notes?: string;
   name?: string;
   variation_name?: string;
@@ -52,7 +52,21 @@ type OrderItem = {
     name: string;
     price: number;
   }[];
-};
+}
+
+// For the items returned from Supabase query
+interface OrderItemResponse {
+  id: string;
+  order_id: string;
+  item_id: string;
+  quantity: number;
+  price: number;
+  variation_id: string | null; // Explicitly define it matches what comes from DB
+  notes: string | null;
+  menu_items: { name: string };
+}
+
+type OrderItem = OrderItemBase;
 
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
 
@@ -273,7 +287,7 @@ const Orders: React.FC = () => {
       
       // Process items to include menu item name
       const processedItems: OrderItem[] = await Promise.all(
-        orderItems.map(async (item) => {
+        orderItems.map(async (item: OrderItemResponse) => {
           // Get variation name if exists
           let variationName = '';
           if (item.variation_id) {
