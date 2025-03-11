@@ -17,7 +17,6 @@ import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Reservation from "./pages/Reservation";
 import Profile from "./pages/Profile";
-import OrderHistory from "./pages/OrderHistory";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/Login";
@@ -49,7 +48,6 @@ const App = () => (
               <Route path="/cart" element={<Cart />} />
               <Route path="/login" element={<Login />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/order-history" element={<OrderHistory />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/reservation" element={<Reservation />} />
               <Route path="/order-success" element={<OrderSuccess />} />
