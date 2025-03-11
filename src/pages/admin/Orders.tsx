@@ -43,7 +43,7 @@ type OrderItem = {
   item_id: string;
   quantity: number;
   price: number;
-  variation_id?: string;
+  variation_id?: string; // Added this property to fix the TypeScript error
   notes?: string;
   name?: string;
   variation_name?: string;
