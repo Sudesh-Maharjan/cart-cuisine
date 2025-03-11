@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -68,7 +67,6 @@ const Cart: React.FC = () => {
   const [orderNumber, setOrderNumber] = useState<string>('');
   
   useEffect(() => {
-    // Animate cart items one by one
     const timer = setTimeout(() => {
       const ids = cartItems.map(item => item.menuItem.id);
       let timeoutIds: NodeJS.Timeout[] = [];
@@ -89,10 +87,8 @@ const Cart: React.FC = () => {
   }, [cartItems]);
   
   const handleRemoveItem = (id: string) => {
-    // Animate item removal by removing it from animated items first
     setAnimatedItems(prev => prev.filter(itemId => itemId !== id));
     
-    // Then remove from cart after animation
     setTimeout(() => {
       removeFromCart(id);
     }, 300);
@@ -137,12 +133,10 @@ const Cart: React.FC = () => {
     try {
       setIsProcessing(true);
       
-      // Generate a simple order number (timestamp-based)
       const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       const newOrderNumber = `ORD-${Date.now().toString().slice(-6)}-${randomNum}`;
       setOrderNumber(newOrderNumber);
       
-      // Create an order in the database
       const orderData = {
         user_id: profile?.id,
         total_amount: total,
@@ -163,7 +157,6 @@ const Cart: React.FC = () => {
       const orderId = orderResult.id;
       setOrderId(orderId);
       
-      // Add order items
       const orderItems = cartItems.map(item => {
         const orderItem = {
           order_id: orderId,
@@ -182,10 +175,8 @@ const Cart: React.FC = () => {
       
       if (itemsError) throw itemsError;
       
-      // Add addons to order items if they exist
       for (const item of cartItems) {
         if (item.menuItem.customization?.addons && item.menuItem.customization.addons.length > 0) {
-          // Get the order item ID
           const { data: orderItemData } = await supabase
             .from('order_items')
             .select('id')
@@ -194,7 +185,6 @@ const Cart: React.FC = () => {
             .single();
             
           if (orderItemData) {
-            // Insert addons
             const addonItems = item.menuItem.customization.addons.map(addon => ({
               order_item_id: orderItemData.id,
               addon_id: addon.id,
@@ -208,7 +198,6 @@ const Cart: React.FC = () => {
         }
       }
       
-      // For demo purposes, simulate a successful order
       setTimeout(() => {
         setPaymentCompleted(true);
         setIsProcessing(false);
@@ -398,7 +387,6 @@ const Cart: React.FC = () => {
           
           {cartItems.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Cart Items */}
               <div className="lg:col-span-2 bg-card rounded-lg shadow-xl border border-border p-6">
                 <div className="space-y-6">
                   {cartItems.map((item) => {
@@ -427,7 +415,6 @@ const Cart: React.FC = () => {
                                 {item.menuItem.description}
                               </p>
                               
-                              {/* Customization details */}
                               {item.menuItem.customization && (
                                 <div className="mt-2 space-y-1">
                                   {item.menuItem.customization.variation && (
@@ -513,7 +500,6 @@ const Cart: React.FC = () => {
                 </div>
               </div>
               
-              {/* Order Summary */}
               <div className="bg-card rounded-lg shadow-xl border border-border p-6 h-fit lg:sticky lg:top-24 animate-fade-in">
                 <h2 className="font-serif text-xl font-semibold mb-4">Order Summary</h2>
                 
@@ -609,7 +595,6 @@ const Cart: React.FC = () => {
         </div>
       </section>
       
-      {/* Checkout Modal */}
       <Dialog open={checkoutModalOpen} onOpenChange={setCheckoutModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -671,3 +656,4 @@ const Cart: React.FC = () => {
 };
 
 export default Cart;
+
