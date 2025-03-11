@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
@@ -50,7 +51,27 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
-  const user = supabase.auth.user();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+
+  // Get the current user on initial load and when auth state changes
+  useEffect(() => {
+    // Get initial user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id);
+    };
+    
+    getCurrentUser();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Load cart from localStorage on initial mount
   useEffect(() => {
@@ -71,12 +92,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Set up real-time order status updates for the logged-in user
   useEffect(() => {
-    const cleanup = setupOrderSubscription(user?.id);
+    const cleanup = setupOrderSubscription(userId);
     
     return () => {
       if (cleanup) cleanup();
     };
-  }, [user?.id]);
+  }, [userId]);
 
   // Add an item to the cart
   const addToCart = (menuItem: MenuItem, quantity = 1) => {
