@@ -235,7 +235,10 @@ const Orders: React.FC = () => {
     try {
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', orderId);
         
       if (error) throw error;

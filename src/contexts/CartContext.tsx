@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
 import { supabase } from '@/integrations/supabase/client';
+import { setupOrderSubscription } from '@/utils/orderSubscription';
 
 // Types
 export type MenuItem = {
@@ -50,6 +50,7 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
+  const user = supabase.auth.user();
 
   // Load cart from localStorage on initial mount
   useEffect(() => {
@@ -67,6 +68,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
+
+  // Set up real-time order status updates for the logged-in user
+  useEffect(() => {
+    const cleanup = setupOrderSubscription(user?.id);
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [user?.id]);
 
   // Add an item to the cart
   const addToCart = (menuItem: MenuItem, quantity = 1) => {
