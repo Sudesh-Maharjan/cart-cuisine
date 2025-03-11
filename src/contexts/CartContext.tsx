@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types
 export type MenuItem = {

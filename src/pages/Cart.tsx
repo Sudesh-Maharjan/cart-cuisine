@@ -17,7 +17,9 @@ import {
   Clock,
   Check,
   Info,
-  ArrowRight
+  ArrowRight,
+  Home,
+  Phone
 } from 'lucide-react';
 import { 
   Accordion,
@@ -35,10 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
-
-const stripePromise = loadStripe('pk_test_51OrGXqSHGwq6QsF51l3yElJnY31T82CQHI8Q2CsheFUxMU2lZDfdYyojHvqMvNuxnAxEVJKfjbzpZzbGJLnkuXxZ00XqcTW0t3');
 
 interface CheckoutStep {
   id: string;
@@ -55,7 +54,6 @@ const Cart: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [animatedItems, setAnimatedItems] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [paymentIntent, setPaymentIntent] = useState<string | null>(null);
   const [shippingAddress, setShippingAddress] = useState({
     address: profile?.address || '',
     city: '',
@@ -67,6 +65,7 @@ const Cart: React.FC = () => {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string>('');
   
   useEffect(() => {
     // Animate cart items one by one
@@ -134,15 +133,21 @@ const Cart: React.FC = () => {
     }
   };
   
-  const handlePaymentWithStripe = async () => {
+  const handleCashOnDeliveryPayment = async () => {
     try {
       setIsProcessing(true);
+      
+      // Generate a simple order number (timestamp-based)
+      const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const newOrderNumber = `ORD-${Date.now().toString().slice(-6)}-${randomNum}`;
+      setOrderNumber(newOrderNumber);
       
       // Create an order in the database
       const orderData = {
         user_id: profile?.id,
         total_amount: total,
-        status: 'pending'
+        status: 'pending',
+        order_number: newOrderNumber
       };
       
       const { data: orderResult, error: orderError } = await supabase
@@ -177,30 +182,31 @@ const Cart: React.FC = () => {
       
       if (itemsError) throw itemsError;
       
-      // Create a Stripe payment intent
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error("Failed to load Stripe");
-      
-      // In a real app, you would create a payment intent on the server
-      // This is a simplified example for demonstration purposes
-      const { error } = await stripe.redirectToCheckout({
-        lineItems: cartItems.map(item => ({
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: item.menuItem.name,
-              images: [item.menuItem.image]
-            },
-            unit_amount: Math.round(item.menuItem.price * 100), // Stripe takes amount in cents
-          },
-          quantity: item.quantity,
-        })),
-        mode: 'payment',
-        successUrl: `${window.location.origin}/order-success?order_id=${orderId}`,
-        cancelUrl: `${window.location.origin}/cart`,
-      });
-      
-      if (error) throw error;
+      // Add addons to order items if they exist
+      for (const item of cartItems) {
+        if (item.menuItem.customization?.addons && item.menuItem.customization.addons.length > 0) {
+          // Get the order item ID
+          const { data: orderItemData } = await supabase
+            .from('order_items')
+            .select('id')
+            .eq('order_id', orderId)
+            .eq('item_id', item.menuItem.id)
+            .single();
+            
+          if (orderItemData) {
+            // Insert addons
+            const addonItems = item.menuItem.customization.addons.map(addon => ({
+              order_item_id: orderItemData.id,
+              addon_id: addon.id,
+              price: addon.price
+            }));
+            
+            await supabase
+              .from('order_item_addons')
+              .insert(addonItems);
+          }
+        }
+      }
       
       // For demo purposes, simulate a successful order
       setTimeout(() => {
@@ -208,31 +214,20 @@ const Cart: React.FC = () => {
         setIsProcessing(false);
         clearCart();
         
-        // Update order status to completed
-        supabase
-          .from('orders')
-          .update({ status: 'completed' })
-          .eq('id', orderId)
-          .then(() => {
-            toast({
-              title: 'Order Placed Successfully!',
-              description: 'Your order has been received and is being processed.',
-            });
-            
-            navigate('/order-success', { 
-              state: { 
-                orderId,
-                total: total
-              } 
-            });
-          });
+        navigate('/order-success', { 
+          state: { 
+            orderId,
+            orderNumber: newOrderNumber,
+            total: total
+          } 
+        });
       }, 2000);
       
     } catch (error: any) {
-      console.error('Payment error:', error);
+      console.error('Order error:', error);
       setIsProcessing(false);
       toast({
-        title: 'Payment Failed',
+        title: 'Order Failed',
         description: error.message || 'An error occurred during checkout',
         variant: 'destructive',
       });
@@ -254,6 +249,7 @@ const Cart: React.FC = () => {
                 value={shippingAddress.address}
                 onChange={(e) => setShippingAddress({ ...shippingAddress, address: e.target.value })}
                 placeholder="Delivery address"
+                required
               />
             </div>
             <div>
@@ -264,6 +260,7 @@ const Cart: React.FC = () => {
                 value={shippingAddress.phone}
                 onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
                 placeholder="Contact phone"
+                required
               />
             </div>
           </div>
@@ -340,11 +337,22 @@ const Cart: React.FC = () => {
         <div className="space-y-6 p-2">
           <div className="bg-muted/30 p-4 rounded-md text-center">
             <p className="font-medium mb-2">Total: {formatCurrency(total)}</p>
-            <p className="text-sm text-muted-foreground mb-4">Please complete your payment to finish your order</p>
+            
+            <div className="mb-6 mt-4 border border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
+              <h3 className="font-medium text-center mb-3">Cash on Delivery</h3>
+              <div className="flex justify-center space-x-2 mb-3">
+                <Home size={18} className="text-primary" />
+                <p className="text-sm">Pay when we deliver to your door</p>
+              </div>
+              <div className="flex justify-center space-x-2">
+                <Phone size={18} className="text-primary" />
+                <p className="text-sm">We'll call you before delivery</p>
+              </div>
+            </div>
             
             <Button 
-              onClick={handlePaymentWithStripe}
-              disabled={isProcessing}
+              onClick={handleCashOnDeliveryPayment}
+              disabled={isProcessing || !shippingAddress.address || !shippingAddress.phone}
               className="w-full bg-primary hover:bg-primary/90"
             >
               {isProcessing ? (
@@ -355,7 +363,7 @@ const Cart: React.FC = () => {
               ) : (
                 <>
                   <CreditCard size={18} className="mr-2" />
-                  Pay with Stripe
+                  Place Order - Cash on Delivery
                 </>
               )}
             </Button>
@@ -363,13 +371,15 @@ const Cart: React.FC = () => {
             {paymentCompleted && (
               <div className="mt-4 p-3 bg-green-500/10 text-green-500 rounded-md">
                 <Check size={18} className="mx-auto mb-2" />
-                Payment successful! Your order has been placed.
+                Order placed successfully! Your order number is {orderNumber}.
               </div>
             )}
             
-            <p className="text-xs text-muted-foreground mt-4">
-              This is a demo store using Stripe in test mode. No real payments will be processed.
-            </p>
+            {(!shippingAddress.address || !shippingAddress.phone) && (
+              <p className="text-xs text-destructive mt-2">
+                Please provide both delivery address and phone number to proceed.
+              </p>
+            )}
           </div>
         </div>
       )
@@ -548,19 +558,7 @@ const Cart: React.FC = () => {
                     <AccordionContent>
                       <div className="flex items-center space-x-2 py-1">
                         <Check size={16} className="text-primary" />
-                        <span className="text-sm">Credit/Debit Cards</span>
-                      </div>
-                      <div className="flex items-center space-x-2 py-1">
-                        <Check size={16} className="text-primary" />
-                        <span className="text-sm">PayPal</span>
-                      </div>
-                      <div className="flex items-center space-x-2 py-1">
-                        <Check size={16} className="text-primary" />
-                        <span className="text-sm">Apple Pay</span>
-                      </div>
-                      <div className="flex items-center space-x-2 py-1">
-                        <Check size={16} className="text-primary" />
-                        <span className="text-sm">Google Pay</span>
+                        <span className="text-sm">Cash on Delivery</span>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -574,7 +572,7 @@ const Cart: React.FC = () => {
                       </div>
                       <div className="flex items-start space-x-2 py-1">
                         <Info size={16} className="text-primary mt-0.5" />
-                        <span className="text-sm">Free delivery for orders over $30</span>
+                        <span className="text-sm">Free delivery for orders over £30</span>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
