@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -287,7 +286,7 @@ const Orders: React.FC = () => {
       
       // Process items to include menu item name
       const processedItems: OrderItem[] = await Promise.all(
-        orderItems.map(async (item: OrderItemResponse) => {
+        (orderItems as OrderItemResponse[]).map(async (item: OrderItemResponse) => {
           // Get variation name if exists
           let variationName = '';
           if (item.variation_id) {
