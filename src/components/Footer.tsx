@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Restaurant Info */}
           <div>
-            <h3 className="font-serif text-2xl font-bold mb-4">Savoria</h3>
+            <h3 className="font-serif text-2xl font-bold mb-4">Restaurant</h3>
             <p className="mb-4 text-gray-300">
               Experience the finest cuisine in an elegant and comfortable atmosphere.
             </p>
@@ -73,7 +73,7 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-center space-x-3">
                 <Mail size={20} className="flex-shrink-0" />
-                <span className="text-gray-300">info@savoria.com</span>
+                <span className="text-gray-300">info@restaurant.com</span>
               </li>
             </ul>
           </div>
@@ -101,7 +101,7 @@ const Footer: React.FC = () => {
         </div>
         
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-          <p>© {new Date().getFullYear()} Savoria Restaurant. All rights reserved.</p>
+          <p>© {new Date().getFullYear()}  Restaurant. All rights reserved.</p>
         </div>
       </div>
     </footer>

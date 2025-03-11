@@ -172,7 +172,7 @@ const AdminLayout: React.FC = () => {
         } hidden md:flex flex-col bg-gray-900 text-white transition-all duration-300 ease-in-out relative border-r border-gray-800`}
       >
         <div className={`p-4 border-b border-gray-800 flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          {!collapsed && <h1 className="text-xl font-bold text-white">Savoria Admin</h1>}
+          {!collapsed && <h1 className="text-xl font-bold">Restaurant Admin</h1>}
           <Button 
             variant="ghost" 
             size="icon"
