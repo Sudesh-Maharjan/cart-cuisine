@@ -289,7 +289,7 @@ const Orders: React.FC = () => {
       
       // Process items to include menu item name
       const processedItems: OrderItem[] = await Promise.all(
-        (orderItems as OrderItemResponse[]).map(async (item: OrderItemResponse) => {
+        (orderItems || []).map(async (item: any) => {
           // Get variation name if exists
           let variationName = '';
           if (item.variation_id) {
@@ -298,12 +298,12 @@ const Orders: React.FC = () => {
               .select('name')
               .eq('id', item.variation_id)
               .single();
-              
+            
             if (variationData) {
               variationName = variationData.name;
             }
           }
-          
+        
           // Get addons
           const { data: addonsData } = await supabase
             .from('order_item_addons')
@@ -314,13 +314,13 @@ const Orders: React.FC = () => {
               item_addons(name)
             `)
             .eq('order_item_id', item.id);
-            
+        
           const addons = addonsData?.map(addon => ({
             id: addon.addon_id,
             name: addon.item_addons?.name || 'Addon',
             price: addon.price
           })) || [];
-          
+        
           return {
             ...item,
             name: item.menu_items?.name || 'Unknown Item',
@@ -329,12 +329,12 @@ const Orders: React.FC = () => {
           };
         })
       );
-      
+    
       setOrderDetails({
         order,
         items: processedItems
       });
-      
+    
       setShowOrderDetails(true);
     } catch (error: any) {
       toast({
