@@ -1,10 +1,21 @@
+
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { X, Menu, ShoppingCart, User } from 'lucide-react';
+import { X, Menu, ShoppingCart, User, ChevronDown, LogOut, Settings } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useRestaurantSettings } from '@/hooks/use-restaurant-settings';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Navbar() {
   const isMobile = useIsMobile();
@@ -12,9 +23,16 @@ export default function Navbar() {
   const { cartItems } = useCart();
   const location = useLocation();
   const { settings } = useRestaurantSettings();
+  const { isAuthenticated, isAdmin, profile, logout } = useAuth();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   return (
@@ -78,11 +96,60 @@ export default function Navbar() {
               </ul>
 
               <div className="flex items-center space-x-4">
-                <Link to="/profile">
-                  <Button variant="ghost" size="icon" className="relative">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative flex items-center gap-1">
+                      {profile ? (
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                            {profile.first_name?.charAt(0) || profile.last_name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <User className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {isAuthenticated ? (
+                      <>
+                        <DropdownMenuLabel>
+                          {profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}` : 'My Account'}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/profile" className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        {isAdmin && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/dashboard" className="cursor-pointer">
+                              <Settings className="mr-2 h-4 w-4" />
+                              Admin Dashboard
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Log out
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/login" className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            Log in
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
                 <Link to="/cart">
                   <Button variant="ghost" size="icon" className="relative">
                     <ShoppingCart className="h-5 w-5" />
@@ -177,6 +244,30 @@ export default function Navbar() {
                   Profile
                 </Link>
               </li>
+              {isAuthenticated && isAdmin && (
+                <li>
+                  <Link 
+                    to="/admin/dashboard" 
+                    className={`block hover:text-primary transition-colors ${isActive('/admin/dashboard') ? 'text-primary font-medium' : ''}`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
+                </li>
+              )}
+              {isAuthenticated && (
+                <li>
+                  <button 
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block hover:text-primary transition-colors"
+                  >
+                    Log out
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         )}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MenuItem } from '@/contexts/CartContext';
 import { useCart } from '@/contexts/CartContext';
@@ -154,7 +153,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   // Render list layout
   if (layout === 'list') {
     return (
-      <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-white rounded-lg shadow-md p-4 flex justify-between items-center">
+      <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md p-4 flex justify-between items-center">
         <div className="flex-grow mr-4">
           <div className="flex justify-between mb-1">
             <h3 className="font-serif text-base font-semibold">{item.name}</h3>
@@ -166,14 +165,92 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           </div>
           
           {hasVariations && (
-            <div className="text-xs text-gray-500 mb-1">
+            <div className="text-xs text-muted-foreground mb-1">
               {variations.length} {variations.length === 1 ? 'variation' : 'variations'} available
+            </div>
+          )}
+          
+          {showOptions && hasOptions && (
+            <div className="mt-2 space-y-3 bg-muted/30 p-2 rounded-md">
+              {hasVariations && (
+                <div>
+                  <h4 className="text-xs font-medium mb-1">Size/Variation:</h4>
+                  <div className="space-y-1">
+                    {variations.map(variation => (
+                      <div 
+                        key={variation.id}
+                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded"
+                        onClick={() => setSelectedVariation(variation.id === selectedVariation ? null : variation.id)}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full border ${
+                            selectedVariation === variation.id 
+                              ? 'bg-primary border-primary' 
+                              : 'border-border'
+                          } mr-1 flex items-center justify-center`}>
+                            {selectedVariation === variation.id && (
+                              <Check size={10} className="text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-xs">{variation.name}</span>
+                        </div>
+                        <span className="text-xs">
+                          {variation.price_adjustment > 0 ? `+${formatCurrency(variation.price_adjustment)}` : 'No charge'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {hasAddons && (
+                <div>
+                  <h4 className="text-xs font-medium mb-1">Add-ons:</h4>
+                  <div className="space-y-1">
+                    {addons.map(addon => (
+                      <div 
+                        key={addon.id}
+                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded"
+                        onClick={() => toggleAddon(addon.id)}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded border ${
+                            selectedAddons.includes(addon.id) 
+                              ? 'bg-primary border-primary' 
+                              : 'border-border'
+                          } mr-1 flex items-center justify-center`}>
+                            {selectedAddons.includes(addon.id) && (
+                              <Check size={10} className="text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-xs">{addon.name}</span>
+                        </div>
+                        <span className="text-xs">
+                          {`+${formatCurrency(addon.price)}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
         
         {showControls && (
-          <div className="flex items-center">
+          <div className="flex flex-col items-end space-y-2">
+            {hasOptions && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-xs p-0 px-2"
+                onClick={() => setShowOptions(!showOptions)}
+              >
+                {showOptions ? "Hide" : "Customize"}
+                {showOptions ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
+              </Button>
+            )}
+            
             {quantity > 0 ? (
               <div className="flex items-center space-x-1">
                 <Button 
@@ -212,7 +289,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   
   // Render default grid layout
   return (
-    <div className="food-card hover:border-primary/30 transition-all duration-300 bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="food-card hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md overflow-hidden">
       <div className="h-48 overflow-hidden">
         <img 
           src={item.image} 
@@ -268,10 +345,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                                 <div className={`w-4 h-4 rounded-full border ${
                                   selectedVariation === variation.id 
                                     ? 'bg-primary border-primary' 
-                                    : 'border-gray-300'
+                                    : 'border-border'
                                 } mr-2 flex items-center justify-center`}>
                                   {selectedVariation === variation.id && (
-                                    <Check size={12} className="text-white" />
+                                    <Check size={12} className="text-primary-foreground" />
                                   )}
                                 </div>
                                 <span className="text-sm">{variation.name}</span>
@@ -299,10 +376,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                                 <div className={`w-4 h-4 rounded border ${
                                   selectedAddons.includes(addon.id) 
                                     ? 'bg-primary border-primary' 
-                                    : 'border-gray-300'
+                                    : 'border-border'
                                 } mr-2 flex items-center justify-center`}>
                                   {selectedAddons.includes(addon.id) && (
-                                    <Check size={12} className="text-white" />
+                                    <Check size={12} className="text-primary-foreground" />
                                   )}
                                 </div>
                                 <span className="text-sm">{addon.name}</span>
