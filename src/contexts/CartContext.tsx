@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
+import { supabase } from '@/integrations/supabase/client';
+import { setupOrderSubscription } from '@/utils/orderSubscription';
 
 // Types
 export type MenuItem = {
@@ -49,6 +51,27 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+
+  // Get the current user on initial load and when auth state changes
+  useEffect(() => {
+    // Get initial user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id);
+    };
+    
+    getCurrentUser();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Load cart from localStorage on initial mount
   useEffect(() => {
@@ -67,21 +90,55 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Add an item to the cart
+  // Set up real-time order status updates for the logged-in user
+  useEffect(() => {
+    const cleanup = setupOrderSubscription(userId);
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [userId]);
+
+  // Add an item to the cart - modified to handle variations correctly
   const addToCart = (menuItem: MenuItem, quantity = 1) => {
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find(item => item.menuItem.id === menuItem.id);
-      
-      if (existingItem) {
-        // Update quantity if item already exists
-        return prevItems.map(item => 
-          item.menuItem.id === menuItem.id 
-            ? { ...item, quantity: item.quantity + quantity } 
-            : item
+      // If item has a variation, we need to check if an item with the same variation exists
+      if (menuItem.customization?.variation) {
+        const existingItemWithSameVariation = prevItems.find(item => 
+          item.menuItem.id === menuItem.id && 
+          item.menuItem.customization?.variation?.id === menuItem.customization?.variation?.id
         );
+        
+        if (existingItemWithSameVariation) {
+          // Update quantity if item with same variation exists
+          return prevItems.map(item => 
+            (item.menuItem.id === menuItem.id && 
+             item.menuItem.customization?.variation?.id === menuItem.customization?.variation?.id)
+              ? { ...item, quantity: item.quantity + quantity } 
+              : item
+          );
+        } else {
+          // Add new item with variation
+          return [...prevItems, { menuItem, quantity }];
+        }
       } else {
-        // Add new item
-        return [...prevItems, { menuItem, quantity }];
+        // For items without variation, check if the exact same item exists
+        const existingItemWithoutVariation = prevItems.find(item => 
+          item.menuItem.id === menuItem.id && 
+          !item.menuItem.customization?.variation
+        );
+        
+        if (existingItemWithoutVariation) {
+          // Update quantity if exact same item exists
+          return prevItems.map(item => 
+            (item.menuItem.id === menuItem.id && !item.menuItem.customization?.variation)
+              ? { ...item, quantity: item.quantity + quantity } 
+              : item
+          );
+        } else {
+          // Add new item without variation
+          return [...prevItems, { menuItem, quantity }];
+        }
       }
     });
     
@@ -191,7 +248,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Calculate subtotal, tax, and total
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.menuItem.price * item.quantity, 
+    (sum, item) => sum + (item.menuItem.price * item.quantity), 
     0
   );
   const tax = subtotal * 0.08; // 8% tax
