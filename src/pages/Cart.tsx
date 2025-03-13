@@ -65,7 +65,7 @@ const Cart: React.FC = () => {
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string>('');
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       const ids = cartItems.map(item => item.menuItem.id);
@@ -394,7 +394,7 @@ const Cart: React.FC = () => {
                     
                     return (
                       <div 
-                        key={item.menuItem.id} 
+                        key={`${item.menuItem.id}-${item.menuItem.customization?.variation?.id || 'no-variation'}`} 
                         className={`flex flex-col sm:flex-row items-start border-b border-border pb-6 transition-all duration-300 ${
                           isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                         }`}
@@ -437,10 +437,6 @@ const Cart: React.FC = () => {
                                   )}
                                 </div>
                               )}
-                              
-                              <p className="text-primary font-medium mt-2">
-                                {formatCurrency(item.menuItem.price)}
-                              </p>
                             </div>
                             
                             <button 
@@ -656,4 +652,3 @@ const Cart: React.FC = () => {
 };
 
 export default Cart;
-

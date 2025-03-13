@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MenuItem } from '@/contexts/CartContext';
 import { useCart } from '@/contexts/CartContext';
@@ -41,8 +42,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [showOptions, setShowOptions] = useState(false);
   
-  const cartItem = cartItems.find(cartItem => cartItem.menuItem.id === item.id);
-  const quantity = cartItem ? cartItem.quantity : 0;
+  // Find all cart items that match the current item id
+  const matchingCartItems = cartItems.filter(cartItem => cartItem.menuItem.id === item.id);
+  const quantity = matchingCartItems.reduce((sum, item) => sum + item.quantity, 0);
   
   // Calculate price range
   const minPrice = item.price;
@@ -138,8 +140,23 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   };
   
   const handleUpdateQuantity = (newQuantity: number) => {
-    console.log('Updating quantity:', item.id, newQuantity);
-    updateQuantity(item.id, newQuantity);
+    // If we have items with variations in cart, we need to handle them differently
+    if (matchingCartItems.length > 1) {
+      // If decreasing quantity, remove the most recently added item
+      if (newQuantity < quantity) {
+        const lastAddedItem = matchingCartItems[matchingCartItems.length - 1];
+        updateQuantity(lastAddedItem.menuItem.id, lastAddedItem.quantity - 1);
+      } else {
+        // If increasing, we add a new item or update an existing one
+        handleAddToCart();
+      }
+    } else if (matchingCartItems.length === 1) {
+      // If only one item, just update its quantity
+      updateQuantity(matchingCartItems[0].menuItem.id, newQuantity);
+    } else if (newQuantity > 0) {
+      // If no items in cart but trying to add, call handleAddToCart
+      handleAddToCart();
+    }
   };
   
   const toggleAddon = (addonId: string) => {
@@ -153,10 +170,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   // Render list layout
   if (layout === 'list') {
     return (
-      <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md p-4 flex justify-between items-center">
+      <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md p-4 flex justify-between items-center dark:bg-gray-800">
         <div className="flex-grow mr-4">
           <div className="flex justify-between mb-1">
-            <h3 className="font-serif text-base font-semibold">{item.name}</h3>
+            <h3 className="font-serif text-base font-semibold dark:text-white">{item.name}</h3>
             <span className="text-primary font-medium text-sm">
               {minPrice === maxPrice 
                 ? formatCurrency(minPrice) 
@@ -171,30 +188,30 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           )}
           
           {showOptions && hasOptions && (
-            <div className="mt-2 space-y-3 bg-muted/30 p-2 rounded-md">
+            <div className="mt-2 space-y-3 bg-muted/30 p-2 rounded-md dark:bg-gray-700/50">
               {hasVariations && (
                 <div>
-                  <h4 className="text-xs font-medium mb-1">Size/Variation:</h4>
+                  <h4 className="text-xs font-medium mb-1 dark:text-gray-200">Size/Variation:</h4>
                   <div className="space-y-1">
                     {variations.map(variation => (
                       <div 
                         key={variation.id}
-                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded"
+                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded dark:hover:bg-gray-600/50"
                         onClick={() => setSelectedVariation(variation.id === selectedVariation ? null : variation.id)}
                       >
                         <div className="flex items-center">
                           <div className={`w-3 h-3 rounded-full border ${
                             selectedVariation === variation.id 
                               ? 'bg-primary border-primary' 
-                              : 'border-border'
+                              : 'border-border dark:border-gray-500'
                           } mr-1 flex items-center justify-center`}>
                             {selectedVariation === variation.id && (
                               <Check size={10} className="text-primary-foreground" />
                             )}
                           </div>
-                          <span className="text-xs">{variation.name}</span>
+                          <span className="text-xs dark:text-white">{variation.name}</span>
                         </div>
-                        <span className="text-xs">
+                        <span className="text-xs dark:text-white">
                           {variation.price_adjustment > 0 ? `+${formatCurrency(variation.price_adjustment)}` : 'No charge'}
                         </span>
                       </div>
@@ -205,27 +222,27 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               
               {hasAddons && (
                 <div>
-                  <h4 className="text-xs font-medium mb-1">Add-ons:</h4>
+                  <h4 className="text-xs font-medium mb-1 dark:text-gray-200">Add-ons:</h4>
                   <div className="space-y-1">
                     {addons.map(addon => (
                       <div 
                         key={addon.id}
-                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded"
+                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded dark:hover:bg-gray-600/50"
                         onClick={() => toggleAddon(addon.id)}
                       >
                         <div className="flex items-center">
                           <div className={`w-3 h-3 rounded border ${
                             selectedAddons.includes(addon.id) 
                               ? 'bg-primary border-primary' 
-                              : 'border-border'
+                              : 'border-border dark:border-gray-500'
                           } mr-1 flex items-center justify-center`}>
                             {selectedAddons.includes(addon.id) && (
                               <Check size={10} className="text-primary-foreground" />
                             )}
                           </div>
-                          <span className="text-xs">{addon.name}</span>
+                          <span className="text-xs dark:text-white">{addon.name}</span>
                         </div>
-                        <span className="text-xs">
+                        <span className="text-xs dark:text-white">
                           {`+${formatCurrency(addon.price)}`}
                         </span>
                       </div>
@@ -261,7 +278,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                 >
                   <Minus size={12} />
                 </Button>
-                <span className="font-medium w-6 text-center text-sm">{quantity}</span>
+                <span className="font-medium w-6 text-center text-sm dark:text-white">{quantity}</span>
                 <Button 
                   variant="outline" 
                   size="icon" 

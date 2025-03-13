@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,54 +37,34 @@ import { Loader2, Save, RefreshCw, AlertTriangle } from 'lucide-react';
 type RestaurantSettings = {
   id?: string;
   restaurant_name: string;
-  description?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
+  restaurant_address?: string;
+  restaurant_email?: string;
+  restaurant_phone?: string;
   logo_url?: string;
-  hero_image_url?: string;
-  opening_hours?: string;
-  social_media?: {
-    facebook?: string;
-    instagram?: string;
-    twitter?: string;
-  };
-  tax_rate?: number;
-  currency?: string;
-  allow_reservations?: boolean;
-  reservation_interval?: number;
-  max_party_size?: number;
-  online_ordering?: boolean;
-  delivery_radius?: number;
-  delivery_fee?: number;
-  min_order_amount?: number;
-  payment_methods?: string[];
+  social_facebook?: string;
+  social_instagram?: string;
+  social_twitter?: string;
+  working_hours_weekday?: string;
+  working_hours_weekend?: string;
+  email_notifications?: boolean;
+  marketing_emails?: boolean;
+  order_confirmations?: boolean;
 };
 
 const defaultSettings: RestaurantSettings = {
   restaurant_name: 'Savoria Restaurant',
-  description: 'A fine dining experience with the best cuisine in town.',
-  address: '123 Main St, Anytown, USA',
-  phone: '(555) 123-4567',
-  email: 'info@savoria.com',
+  restaurant_address: '123 Main St, Anytown, USA',
+  restaurant_phone: '(555) 123-4567',
+  restaurant_email: 'info@savoria.com',
   logo_url: '/logo.png',
-  hero_image_url: '/hero-bg.jpg',
-  opening_hours: 'Mon-Fri: 11am-10pm, Sat-Sun: 10am-11pm',
-  social_media: {
-    facebook: 'https://facebook.com/savoria',
-    instagram: 'https://instagram.com/savoria',
-    twitter: 'https://twitter.com/savoria',
-  },
-  tax_rate: 8.0,
-  currency: 'USD',
-  allow_reservations: true,
-  reservation_interval: 30,
-  max_party_size: 10,
-  online_ordering: true,
-  delivery_radius: 5,
-  delivery_fee: 3.99,
-  min_order_amount: 15.0,
-  payment_methods: ['credit_card', 'paypal'],
+  working_hours_weekday: 'Mon-Fri: 11am-10pm',
+  working_hours_weekend: 'Sat-Sun: 10am-11pm',
+  social_facebook: 'https://facebook.com/savoria',
+  social_instagram: 'https://instagram.com/savoria',
+  social_twitter: 'https://twitter.com/savoria',
+  email_notifications: true,
+  order_confirmations: true,
+  marketing_emails: false,
 };
 
 const SettingsManager: React.FC = () => {
@@ -105,14 +86,32 @@ const SettingsManager: React.FC = () => {
         .select('*')
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
-        setSettings(data);
-      } else {
-        setSettings(defaultSettings);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No data found
+          setSettings(defaultSettings);
+        } else {
+          throw error;
+        }
+      } else if (data) {
+        // Map database columns to our settings type
+        const mappedSettings: RestaurantSettings = {
+          id: data.id,
+          restaurant_name: data.restaurant_name || defaultSettings.restaurant_name,
+          restaurant_address: data.restaurant_address,
+          restaurant_email: data.restaurant_email,
+          restaurant_phone: data.restaurant_phone,
+          logo_url: data.logo_url,
+          social_facebook: data.social_facebook,
+          social_instagram: data.social_instagram,
+          social_twitter: data.social_twitter,
+          working_hours_weekday: data.working_hours_weekday,
+          working_hours_weekend: data.working_hours_weekend,
+          email_notifications: data.email_notifications,
+          marketing_emails: data.marketing_emails,
+          order_confirmations: data.order_confirmations
+        };
+        setSettings(mappedSettings);
       }
     } catch (error: any) {
       toast({
@@ -120,6 +119,7 @@ const SettingsManager: React.FC = () => {
         description: `Failed to load settings: ${error.message}`,
         variant: 'destructive',
       });
+      setSettings(defaultSettings);
     } finally {
       setIsLoading(false);
     }
@@ -130,22 +130,11 @@ const SettingsManager: React.FC = () => {
     
     if (!settings) return;
     
-    // Handle nested properties (social_media)
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setSettings({
-        ...settings,
-        [parent]: {
-          ...settings[parent as keyof RestaurantSettings],
-          [child]: value,
-        },
-      });
-    } else {
-      setSettings({
-        ...settings,
-        [name]: value,
-      });
-    }
+    // Create a new settings object with the updated field
+    setSettings({
+      ...settings,
+      [name]: value,
+    });
   };
 
   const handleSwitchChange = (checked: boolean, name: string) => {
@@ -154,17 +143,6 @@ const SettingsManager: React.FC = () => {
     setSettings({
       ...settings,
       [name]: checked,
-    });
-  };
-
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    if (!settings) return;
-    
-    setSettings({
-      ...settings,
-      [name]: value === '' ? '' : parseFloat(value),
     });
   };
 
@@ -184,13 +162,15 @@ const SettingsManager: React.FC = () => {
         return;
       }
       
+      const settingsToSave = { ...settings };
+      
       // Check if settings already exist
       const { data: existingData, error: checkError } = await supabase
         .from('restaurant_settings')
         .select('id')
-        .single();
+        .maybeSingle();
         
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         throw checkError;
       }
       
@@ -200,13 +180,13 @@ const SettingsManager: React.FC = () => {
         // Update existing settings
         result = await supabase
           .from('restaurant_settings')
-          .update(settings)
+          .update(settingsToSave)
           .eq('id', existingData.id);
       } else {
         // Insert new settings
         result = await supabase
           .from('restaurant_settings')
-          .insert(settings);
+          .insert(settingsToSave);
       }
       
       if (result.error) throw result.error;
@@ -250,358 +230,238 @@ const SettingsManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/30 bg-black/10 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Restaurant Settings</CardTitle>
-          <CardDescription>
-            Configure your restaurant's information and operational settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid grid-cols-3 md:w-[400px]">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="operations">Operations</TabsTrigger>
-              <TabsTrigger value="ordering">Ordering</TabsTrigger>
-            </TabsList>
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid grid-cols-3 md:w-[400px]">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="operations">Operations</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        </TabsList>
+        
+        {/* General Settings */}
+        <TabsContent value="general" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="restaurant_name">Restaurant Name *</Label>
+              <Input
+                id="restaurant_name"
+                name="restaurant_name"
+                value={settings?.restaurant_name || ''}
+                onChange={handleInputChange}
+                placeholder="Restaurant Name"
+                className="bg-background/30"
+                required
+              />
+            </div>
             
-            {/* General Settings */}
-            <TabsContent value="general" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant_name">Restaurant Name *</Label>
-                  <Input
-                    id="restaurant_name"
-                    name="restaurant_name"
-                    value={settings?.restaurant_name || ''}
-                    onChange={handleInputChange}
-                    placeholder="Restaurant Name"
-                    className="bg-background/30"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={settings?.email || ''}
-                    onChange={handleInputChange}
-                    placeholder="contact@example.com"
-                    className="bg-background/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    value={settings?.phone || ''}
-                    onChange={handleInputChange}
-                    placeholder="(555) 123-4567"
-                    className="bg-background/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    value={settings?.address || ''}
-                    onChange={handleInputChange}
-                    placeholder="123 Main St, City, State"
-                    className="bg-background/30"
-                  />
-                </div>
-                
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={settings?.description || ''}
-                    onChange={handleInputChange}
-                    placeholder="A brief description of your restaurant"
-                    className="bg-background/30 min-h-[100px]"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="logo_url">Logo URL</Label>
-                  <Input
-                    id="logo_url"
-                    name="logo_url"
-                    value={settings?.logo_url || ''}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com/logo.png"
-                    className="bg-background/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="hero_image_url">Hero Image URL</Label>
-                  <Input
-                    id="hero_image_url"
-                    name="hero_image_url"
-                    value={settings?.hero_image_url || ''}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com/hero.jpg"
-                    className="bg-background/30"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Social Media</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="social_media.facebook">Facebook</Label>
-                    <Input
-                      id="social_media.facebook"
-                      name="social_media.facebook"
-                      value={settings?.social_media?.facebook || ''}
-                      onChange={handleInputChange}
-                      placeholder="https://facebook.com/yourpage"
-                      className="bg-background/30"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="social_media.instagram">Instagram</Label>
-                    <Input
-                      id="social_media.instagram"
-                      name="social_media.instagram"
-                      value={settings?.social_media?.instagram || ''}
-                      onChange={handleInputChange}
-                      placeholder="https://instagram.com/yourhandle"
-                      className="bg-background/30"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="social_media.twitter">Twitter</Label>
-                    <Input
-                      id="social_media.twitter"
-                      name="social_media.twitter"
-                      value={settings?.social_media?.twitter || ''}
-                      onChange={handleInputChange}
-                      placeholder="https://twitter.com/yourhandle"
-                      className="bg-background/30"
-                    />
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
+            <div className="space-y-2">
+              <Label htmlFor="restaurant_email">Email Address</Label>
+              <Input
+                id="restaurant_email"
+                name="restaurant_email"
+                type="email"
+                value={settings?.restaurant_email || ''}
+                onChange={handleInputChange}
+                placeholder="contact@example.com"
+                className="bg-background/30"
+              />
+            </div>
             
-            {/* Operations Settings */}
-            <TabsContent value="operations" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="opening_hours">Opening Hours</Label>
-                  <Textarea
-                    id="opening_hours"
-                    name="opening_hours"
-                    value={settings?.opening_hours || ''}
-                    onChange={handleInputChange}
-                    placeholder="Mon-Fri: 9am-10pm, Sat-Sun: 10am-11pm"
-                    className="bg-background/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <Input
-                    id="currency"
-                    name="currency"
-                    value={settings?.currency || ''}
-                    onChange={handleInputChange}
-                    placeholder="USD"
-                    className="bg-background/30"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="tax_rate">Tax Rate (%)</Label>
-                  <Input
-                    id="tax_rate"
-                    name="tax_rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={settings?.tax_rate || ''}
-                    onChange={handleNumberChange}
-                    placeholder="8.0"
-                    className="bg-background/30"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Reservations</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="allow_reservations"
-                    checked={settings?.allow_reservations || false}
-                    onCheckedChange={(checked) => handleSwitchChange(checked, 'allow_reservations')}
-                  />
-                  <Label htmlFor="allow_reservations">Allow online reservations</Label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reservation_interval">Reservation Interval (minutes)</Label>
-                    <Input
-                      id="reservation_interval"
-                      name="reservation_interval"
-                      type="number"
-                      min="15"
-                      step="15"
-                      value={settings?.reservation_interval || ''}
-                      onChange={handleNumberChange}
-                      placeholder="30"
-                      className="bg-background/30"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="max_party_size">Maximum Party Size</Label>
-                    <Input
-                      id="max_party_size"
-                      name="max_party_size"
-                      type="number"
-                      min="1"
-                      value={settings?.max_party_size || ''}
-                      onChange={handleNumberChange}
-                      placeholder="10"
-                      className="bg-background/30"
-                    />
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
+            <div className="space-y-2">
+              <Label htmlFor="restaurant_phone">Phone Number</Label>
+              <Input
+                id="restaurant_phone"
+                name="restaurant_phone"
+                value={settings?.restaurant_phone || ''}
+                onChange={handleInputChange}
+                placeholder="(555) 123-4567"
+                className="bg-background/30"
+              />
+            </div>
             
-            {/* Ordering Settings */}
-            <TabsContent value="ordering" className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="online_ordering"
-                    checked={settings?.online_ordering || false}
-                    onCheckedChange={(checked) => handleSwitchChange(checked, 'online_ordering')}
-                  />
-                  <Label htmlFor="online_ordering">Enable online ordering</Label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="delivery_radius">Delivery Radius (miles)</Label>
-                    <Input
-                      id="delivery_radius"
-                      name="delivery_radius"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={settings?.delivery_radius || ''}
-                      onChange={handleNumberChange}
-                      placeholder="5"
-                      className="bg-background/30"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="delivery_fee">Delivery Fee</Label>
-                    <Input
-                      id="delivery_fee"
-                      name="delivery_fee"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={settings?.delivery_fee || ''}
-                      onChange={handleNumberChange}
-                      placeholder="3.99"
-                      className="bg-background/30"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="min_order_amount">Minimum Order Amount</Label>
-                    <Input
-                      id="min_order_amount"
-                      name="min_order_amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={settings?.min_order_amount || ''}
-                      onChange={handleNumberChange}
-                      placeholder="15.00"
-                      className="bg-background/30"
-                    />
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">Reset to Defaults</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-card/95 backdrop-blur-md border-border/30">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center">
-                  <AlertTriangle className="mr-2 h-5 w-5 text-destructive" />
-                  Reset Settings
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will reset all settings to their default values. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleResetToDefaults}
-                  className="bg-destructive hover:bg-destructive/90"
-                >
-                  Reset
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={fetchSettings}
-              disabled={isSaving}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-            <Button 
-              onClick={handleSaveSettings}
-              disabled={isSaving}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="restaurant_address">Address</Label>
+              <Input
+                id="restaurant_address"
+                name="restaurant_address"
+                value={settings?.restaurant_address || ''}
+                onChange={handleInputChange}
+                placeholder="123 Main St, City, State"
+                className="bg-background/30"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="logo_url">Logo URL</Label>
+              <Input
+                id="logo_url"
+                name="logo_url"
+                value={settings?.logo_url || ''}
+                onChange={handleInputChange}
+                placeholder="https://example.com/logo.png"
+                className="bg-background/30"
+              />
+            </div>
           </div>
-        </CardFooter>
-      </Card>
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Social Media</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="social_facebook">Facebook</Label>
+                <Input
+                  id="social_facebook"
+                  name="social_facebook"
+                  value={settings?.social_facebook || ''}
+                  onChange={handleInputChange}
+                  placeholder="https://facebook.com/yourpage"
+                  className="bg-background/30"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="social_instagram">Instagram</Label>
+                <Input
+                  id="social_instagram"
+                  name="social_instagram"
+                  value={settings?.social_instagram || ''}
+                  onChange={handleInputChange}
+                  placeholder="https://instagram.com/yourhandle"
+                  className="bg-background/30"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="social_twitter">Twitter</Label>
+                <Input
+                  id="social_twitter"
+                  name="social_twitter"
+                  value={settings?.social_twitter || ''}
+                  onChange={handleInputChange}
+                  placeholder="https://twitter.com/yourhandle"
+                  className="bg-background/30"
+                />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+        
+        {/* Operations Settings */}
+        <TabsContent value="operations" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="working_hours_weekday">Weekday Hours</Label>
+              <Input
+                id="working_hours_weekday"
+                name="working_hours_weekday"
+                value={settings?.working_hours_weekday || ''}
+                onChange={handleInputChange}
+                placeholder="Mon-Fri: 9am-10pm"
+                className="bg-background/30"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="working_hours_weekend">Weekend Hours</Label>
+              <Input
+                id="working_hours_weekend"
+                name="working_hours_weekend"
+                value={settings?.working_hours_weekend || ''}
+                onChange={handleInputChange}
+                placeholder="Sat-Sun: 10am-11pm"
+                className="bg-background/30"
+              />
+            </div>
+          </div>
+        </TabsContent>
+        
+        {/* Notifications Settings */}
+        <TabsContent value="notifications" className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="email_notifications"
+                checked={settings?.email_notifications || false}
+                onCheckedChange={(checked) => handleSwitchChange(checked, 'email_notifications')}
+              />
+              <Label htmlFor="email_notifications">Email notifications</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="order_confirmations"
+                checked={settings?.order_confirmations || false}
+                onCheckedChange={(checked) => handleSwitchChange(checked, 'order_confirmations')}
+              />
+              <Label htmlFor="order_confirmations">Order confirmations</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="marketing_emails"
+                checked={settings?.marketing_emails || false}
+                onCheckedChange={(checked) => handleSwitchChange(checked, 'marketing_emails')}
+              />
+              <Label htmlFor="marketing_emails">Marketing emails</Label>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+      
+      <div className="flex justify-between">
+        <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline">Reset to Defaults</Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-card/95 backdrop-blur-md border-border/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center">
+                <AlertTriangle className="mr-2 h-5 w-5 text-destructive" />
+                Reset Settings
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This will reset all settings to their default values. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleResetToDefaults}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Reset
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={fetchSettings}
+            disabled={isSaving}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button 
+            onClick={handleSaveSettings}
+            disabled={isSaving}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
