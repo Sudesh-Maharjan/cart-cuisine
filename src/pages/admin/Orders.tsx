@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -151,12 +152,14 @@ const OrderActions: React.FC<{ order: any }> = ({ order }) => {
         <DropdownMenuSeparator />
         <Dialog>
           <DialogTrigger asChild>
-            <DropdownMenuItem>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
               <Edit className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
           </DialogTrigger>
-          <OrderDetails order={order} />
+          <DialogContent className="sm:max-w-[625px]">
+            <OrderDetails order={order} />
+          </DialogContent>
         </Dialog>
         <DropdownMenuItem className="text-red-600 focus:text-red-600">
           <Trash className="mr-2 h-4 w-4" />
@@ -181,7 +184,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
         const { data, error } = await supabase
           .from('item_variations')
           .select('*')
-          .in('item_id', itemIds);
+          .in('item_id', itemIds as string[]);
 
         if (error) throw error;
         setVariations(data || []);
@@ -206,7 +209,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
   };
 
   return (
-    <DialogContent className="sm:max-w-[625px]">
+    <>
       <DialogHeader>
         <DialogTitle>Order Details</DialogTitle>
         <DialogDescription>
@@ -266,7 +269,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
           <p>{order.notes || 'No additional notes.'}</p>
         </div>
       </div>
-    </DialogContent>
+    </>
   );
 };
 

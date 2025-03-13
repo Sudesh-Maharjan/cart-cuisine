@@ -382,6 +382,7 @@ export type Database = {
           created_at: string | null
           email_notifications: boolean | null
           id: string
+          logo_url: string | null
           marketing_emails: boolean | null
           order_confirmations: boolean | null
           restaurant_address: string | null
@@ -399,6 +400,7 @@ export type Database = {
           created_at?: string | null
           email_notifications?: boolean | null
           id?: string
+          logo_url?: string | null
           marketing_emails?: boolean | null
           order_confirmations?: boolean | null
           restaurant_address?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           created_at?: string | null
           email_notifications?: boolean | null
           id?: string
+          logo_url?: string | null
           marketing_emails?: boolean | null
           order_confirmations?: boolean | null
           restaurant_address?: string | null
