@@ -14,12 +14,15 @@ import {
   ShoppingCart,
   ChevronRight,
   ChevronLeft,
-  X
+  X,
+  Grid2X2,
+  List
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Menu: React.FC = () => {
@@ -29,6 +32,7 @@ const Menu: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [layout, setLayout] = useState<'grid' | 'list'>('list');
   const { toast } = useToast();
   const { cartItems, subtotal, tax, total } = useCart();
   
@@ -156,19 +160,29 @@ const Menu: React.FC = () => {
           </div>
           <div className="flex justify-between items-center mt-4">
             <h1 className="font-serif text-2xl font-bold">Our Menu</h1>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="relative"
-              onClick={() => setShowMobileCart(!showMobileCart)}
-            >
-              <ShoppingCart size={20} />
-              {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItems.length}
-                </span>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <ToggleGroup type="single" value={layout} onValueChange={(value) => value && setLayout(value as 'grid' | 'list')}>
+                <ToggleGroupItem value="list" aria-label="List view">
+                  <List size={18} />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="grid" aria-label="Grid view">
+                  <Grid2X2 size={18} />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="relative"
+                onClick={() => setShowMobileCart(!showMobileCart)}
+              >
+                <ShoppingCart size={20} />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartItems.length}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -176,14 +190,24 @@ const Menu: React.FC = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="hidden lg:flex justify-between items-center mb-8">
             <h1 className="font-serif text-4xl font-bold">Our Menu</h1>
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
-              <Input
-                placeholder="Search menu items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-white shadow-md"
-              />
+            <div className="flex items-center gap-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input
+                  placeholder="Search menu items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 bg-white shadow-md"
+                />
+              </div>
+              <ToggleGroup type="single" value={layout} onValueChange={(value) => value && setLayout(value as 'grid' | 'list')}>
+                <ToggleGroupItem value="list" aria-label="List view">
+                  <List size={18} />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="grid" aria-label="Grid view">
+                  <Grid2X2 size={18} />
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </div>
           
@@ -232,9 +256,16 @@ const Menu: React.FC = () => {
                         <h2 className="font-serif text-2xl font-bold mb-4 sticky top-20 bg-background py-2 z-10">
                           {category.name}
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className={layout === 'grid' 
+                          ? "grid grid-cols-1 md:grid-cols-2 gap-6" 
+                          : "space-y-3"
+                        }>
                           {filteredItems.map(item => (
-                            <MenuItemCard key={item.id} item={item} />
+                            <MenuItemCard 
+                              key={item.id} 
+                              item={item} 
+                              layout={layout}
+                            />
                           ))}
                         </div>
                       </div>
@@ -385,7 +416,7 @@ const Menu: React.FC = () => {
         
         {/* Category Pills - Mobile */}
         <div className="sticky top-[72px] z-20 bg-background border-y py-2 px-4 lg:hidden">
-          <ScrollArea orientation="horizontal" className="pb-2">
+          <ScrollArea className="pb-2">
             <div className="flex gap-2">
               {categories.map(category => (
                 <Button

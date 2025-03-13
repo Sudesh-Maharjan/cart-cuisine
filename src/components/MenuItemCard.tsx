@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface MenuItemCardProps {
   item: MenuItem;
   showControls?: boolean;
+  layout?: 'grid' | 'list';
 }
 
 type Variation = {
@@ -29,7 +30,11 @@ export interface ItemCustomization {
   addons: { id: string; name: string; price: number }[];
 }
 
-const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }) => {
+const MenuItemCard: React.FC<MenuItemCardProps> = ({ 
+  item, 
+  showControls = true, 
+  layout = 'grid' 
+}) => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const [variations, setVariations] = useState<Variation[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -146,6 +151,66 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
     }
   };
   
+  // Render list layout
+  if (layout === 'list') {
+    return (
+      <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-white rounded-lg shadow-md p-4 flex justify-between items-center">
+        <div className="flex-grow mr-4">
+          <div className="flex justify-between mb-1">
+            <h3 className="font-serif text-base font-semibold">{item.name}</h3>
+            <span className="text-primary font-medium text-sm">
+              {minPrice === maxPrice 
+                ? formatCurrency(minPrice) 
+                : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`}
+            </span>
+          </div>
+          
+          {hasVariations && (
+            <div className="text-xs text-gray-500 mb-1">
+              {variations.length} {variations.length === 1 ? 'variation' : 'variations'} available
+            </div>
+          )}
+        </div>
+        
+        {showControls && (
+          <div className="flex items-center">
+            {quantity > 0 ? (
+              <div className="flex items-center space-x-1">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-6 w-6 border-primary text-primary hover:bg-primary/10"
+                  onClick={() => handleUpdateQuantity(quantity - 1)}
+                >
+                  <Minus size={12} />
+                </Button>
+                <span className="font-medium w-6 text-center text-sm">{quantity}</span>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-6 w-6 border-primary text-primary hover:bg-primary/10"
+                  onClick={() => handleUpdateQuantity(quantity + 1)}
+                >
+                  <Plus size={12} />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleAddToCart}
+                variant="outline"
+                size="sm" 
+                className="text-primary border-primary hover:bg-primary/10"
+              >
+                <Plus size={16} />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  // Render default grid layout
   return (
     <div className="food-card hover:border-primary/30 transition-all duration-300 bg-white rounded-lg shadow-md overflow-hidden">
       <div className="h-48 overflow-hidden">
