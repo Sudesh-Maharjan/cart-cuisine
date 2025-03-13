@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { X, Menu, ShoppingCart, User } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useRestaurantSettings } from '@/hooks/use-restaurant-settings';
 
 export default function Navbar() {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { cartItems } = useCart();
   const location = useLocation();
@@ -21,7 +21,6 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
-          {/* Logo */}
           <Link to="/" className="font-serif text-xl font-bold flex items-center">
             {settings?.logo_url ? (
               <img 
@@ -33,7 +32,6 @@ export default function Navbar() {
             <span>{settings?.restaurant_name || 'Tasty Bites'}</span>
           </Link>
 
-          {/* Desktop Navigation */}
           {!isMobile && (
             <>
               <ul className="flex space-x-8">
@@ -99,7 +97,6 @@ export default function Navbar() {
             </>
           )}
 
-          {/* Mobile Navigation */}
           {isMobile && (
             <div className="flex items-center">
               <Link to="/cart" className="mr-2">
@@ -123,7 +120,6 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu */}
         {isMobile && isMenuOpen && (
           <div className="mt-4 pb-4">
             <ul className="space-y-4">

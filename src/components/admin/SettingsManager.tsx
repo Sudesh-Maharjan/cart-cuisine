@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,6 +140,17 @@ const SettingsManager: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
 
+    // Ensure restaurant_name is provided as it's required
+    if (!settings.restaurant_name) {
+      toast({
+        title: 'Validation Error',
+        description: 'Restaurant name is required',
+        variant: 'destructive',
+      });
+      setIsSaving(false);
+      return;
+    }
+
     try {
       // Upload logo if a new one is selected
       let logoUrl = settings.logo_url;
@@ -174,7 +184,7 @@ const SettingsManager: React.FC = () => {
         // Insert new record
         const { error } = await supabase
           .from('restaurant_settings')
-          .insert([updatedSettings]);
+          .insert(updatedSettings);
         saveError = error;
       }
 
