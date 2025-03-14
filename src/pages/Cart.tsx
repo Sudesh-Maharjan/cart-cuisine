@@ -86,11 +86,12 @@ const Cart: React.FC = () => {
     return () => clearTimeout(timer);
   }, [cartItems]);
   
-  const handleRemoveItem = (id: string) => {
-    setAnimatedItems(prev => prev.filter(itemId => itemId !== id));
+  const handleRemoveItem = (id: string, variationId?: string | null) => {
+    const itemKey = `${id}-${variationId || 'no-variation'}`;
+    setAnimatedItems(prev => prev.filter(itemId => itemId !== itemKey));
     
     setTimeout(() => {
-      removeFromCart(id);
+      removeFromCart(id, variationId);
     }, 300);
   };
   
@@ -390,7 +391,8 @@ const Cart: React.FC = () => {
               <div className="lg:col-span-2 bg-card rounded-lg shadow-xl border border-border p-6">
                 <div className="space-y-6">
                   {cartItems.map((item) => {
-                    const isAnimated = animatedItems.includes(item.menuItem.id);
+                    const itemKey = `${item.menuItem.id}-${item.menuItem.customization?.variation?.id || 'no-variation'}`;
+                    const isAnimated = animatedItems.includes(itemKey);
                     
                     return (
                       <div 
@@ -440,7 +442,7 @@ const Cart: React.FC = () => {
                             </div>
                             
                             <button 
-                              onClick={() => handleRemoveItem(item.menuItem.id)}
+                              onClick={() => handleRemoveItem(item.menuItem.id, item.menuItem.customization?.variation?.id)}
                               className="text-muted-foreground hover:text-destructive transition-colors"
                             >
                               <Trash size={18} />
@@ -452,7 +454,11 @@ const Cart: React.FC = () => {
                               variant="outline" 
                               size="icon" 
                               className="h-8 w-8 rounded-full border-primary text-primary hover:bg-primary/10"
-                              onClick={() => updateQuantity(item.menuItem.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(
+                                item.menuItem.id, 
+                                item.quantity - 1, 
+                                item.menuItem.customization?.variation?.id
+                              )}
                               disabled={item.quantity <= 1}
                             >
                               <Minus size={14} />
@@ -462,14 +468,18 @@ const Cart: React.FC = () => {
                               variant="outline" 
                               size="icon" 
                               className="h-8 w-8 rounded-full border-primary text-primary hover:bg-primary/10"
-                              onClick={() => updateQuantity(item.menuItem.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(
+                                item.menuItem.id, 
+                                item.quantity + 1, 
+                                item.menuItem.customization?.variation?.id
+                              )}
                             >
                               <Plus size={14} />
                             </Button>
                             
                             <div className="ml-auto text-right">
                               <p className="font-semibold">
-                                {formatCurrency(item.menuItem.price * item.quantity)}
+                                {formatCurrency((item.displayPrice || item.menuItem.price) * item.quantity)}
                               </p>
                             </div>
                           </div>

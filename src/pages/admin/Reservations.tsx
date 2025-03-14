@@ -129,8 +129,10 @@ const Reservations: React.FC = () => {
     try {
       setIsSending(prev => ({ ...prev, [reservation.id]: true }));
       
+      console.log('Sending email to:', reservation.email);
+      
       // Send email notification
-      const { error } = await supabase.functions.invoke('send-reservation-email', {
+      const { data, error } = await supabase.functions.invoke('send-reservation-email', {
         body: {
           name: reservation.name,
           email: reservation.email,
@@ -140,6 +142,8 @@ const Reservations: React.FC = () => {
           status: reservation.status
         }
       });
+      
+      console.log('Email function response:', data, error);
       
       if (error) throw error;
       

@@ -41,11 +41,27 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [showOptions, setShowOptions] = useState(false);
   
-  // Find all cart items that match the current item id
-  const matchingCartItems = cartItems.filter(cartItem => cartItem.menuItem.id === item.id);
+  const getCartItemKey = (itemId: string, variationId?: string | null): string => {
+    return `${itemId}-${variationId || 'no-variation'}`;
+  };
+  
+  const findMatchingCartItems = () => {
+    if (selectedVariation) {
+      return cartItems.filter(cartItem => 
+        cartItem.menuItem.id === item.id && 
+        cartItem.menuItem.customization?.variation?.id === selectedVariation
+      );
+    } else {
+      return cartItems.filter(cartItem => 
+        cartItem.menuItem.id === item.id && 
+        !cartItem.menuItem.customization?.variation
+      );
+    }
+  };
+  
+  const matchingCartItems = findMatchingCartItems();
   const quantity = matchingCartItems.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Calculate price range
   const minPrice = item.price;
   const maxPrice = variations.length > 0 
     ? item.price + Math.max(...variations.map(v => v.price_adjustment))
@@ -55,11 +71,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   const hasAddons = addons.length > 0;
   const hasOptions = hasVariations || hasAddons;
   
-  // Fetch variations and addons
   useEffect(() => {
     const fetchItemOptions = async () => {
       try {
-        // Fetch variations
         const { data: variationsData, error: variationsError } = await supabase
           .from('item_variations')
           .select('*')
@@ -68,7 +82,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
         if (variationsError) throw variationsError;
         setVariations(variationsData || []);
         
-        // Fetch addons through the mapping table
         const { data: addonsMappingData, error: addonsMappingError } = await supabase
           .from('item_addons_map')
           .select('addon_id')
@@ -96,10 +109,8 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   }, [item.id]);
   
   const handleAddToCart = () => {
-    // Create a copy of the item with the original price (not modified by variations)
     const itemCopy = { ...item };
     
-    // Get selected variation details
     let variationDetails = null;
     if (selectedVariation) {
       const variation = variations.find(v => v.id === selectedVariation);
@@ -108,7 +119,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
       }
     }
     
-    // Get selected addon details
     const addonDetails: Addon[] = [];
     selectedAddons.forEach(addonId => {
       const addon = addons.find(a => a.id === addonId);
@@ -117,7 +127,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
       }
     });
     
-    // Create a customized menu item with selected options
     const customizedItem: MenuItem = {
       ...itemCopy,
       customization: {
@@ -129,29 +138,20 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     console.log('Adding to cart:', customizedItem);
     addToCart(customizedItem);
     
-    // Reset selections after adding to cart
     setSelectedVariation(null);
     setSelectedAddons([]);
     setShowOptions(false);
   };
   
   const handleUpdateQuantity = (newQuantity: number) => {
-    // If we have items with variations in cart, we need to handle them differently
-    if (matchingCartItems.length > 1) {
-      // If decreasing quantity, remove the most recently added item
-      if (newQuantity < quantity) {
-        const lastAddedItem = matchingCartItems[matchingCartItems.length - 1];
-        updateQuantity(lastAddedItem.menuItem.id, lastAddedItem.quantity - 1);
-      } else {
-        // If increasing, we add a new item or update an existing one
+    if (selectedVariation) {
+      updateQuantity(item.id, newQuantity, selectedVariation);
+    } else {
+      if (matchingCartItems.length > 0) {
+        updateQuantity(item.id, newQuantity, null);
+      } else if (newQuantity > 0) {
         handleAddToCart();
       }
-    } else if (matchingCartItems.length === 1) {
-      // If only one item, just update its quantity
-      updateQuantity(matchingCartItems[0].menuItem.id, newQuantity);
-    } else if (newQuantity > 0) {
-      // If no items in cart but trying to add, call handleAddToCart
-      handleAddToCart();
     }
   };
   
@@ -163,11 +163,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     }
   };
   
-  // Calculate current price with selected options for display only
   const calculateCurrentPrice = () => {
     let price = item.price;
     
-    // Add selected variation price
     if (selectedVariation) {
       const variation = variations.find(v => v.id === selectedVariation);
       if (variation) {
@@ -175,7 +173,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
       }
     }
     
-    // Add selected addon prices
     selectedAddons.forEach(addonId => {
       const addon = addons.find(a => a.id === addonId);
       if (addon) {
@@ -186,7 +183,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     return price;
   };
   
-  // Render list layout
   if (layout === 'list') {
     return (
       <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md p-4 flex justify-between items-center dark:bg-gray-800">
@@ -323,7 +319,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     );
   }
   
-  // Render default grid layout
   return (
     <div className="food-card hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md overflow-hidden">
       <div className="h-48 overflow-hidden">

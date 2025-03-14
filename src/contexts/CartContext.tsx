@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
@@ -24,8 +25,8 @@ export type CartItem = {
 type CartContextType = {
   cartItems: CartItem[];
   addToCart: (menuItem: MenuItem, quantity?: number) => void;
-  removeFromCart: (menuItemId: string) => void;
-  updateQuantity: (menuItemId: string, quantity: number) => void;
+  removeFromCart: (menuItemId: string, variationId?: string | null) => void;
+  updateQuantity: (menuItemId: string, quantity: number, variationId?: string | null) => void;
   clearCart: () => void;
   subtotal: number;
   tax: number;
@@ -119,65 +120,44 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return totalPrice;
   };
 
+  // Generate a unique key for cart items that includes variation info
+  const getCartItemKey = (menuItem: MenuItem): string => {
+    const baseKey = menuItem.id;
+    const variationKey = menuItem.customization?.variation?.id || 'no-variation';
+    return `${baseKey}-${variationKey}`;
+  };
+
   // Add an item to the cart - modified to handle variations correctly
   const addToCart = (menuItem: MenuItem, quantity = 1) => {
     // Calculate the total price including all customizations
     const totalItemPrice = calculateItemTotalPrice(menuItem);
+    const cartItemKey = getCartItemKey(menuItem);
     
     setCartItems((prevItems) => {
-      // If item has a variation, we need to check if an item with the same variation exists
-      if (menuItem.customization?.variation) {
-        const existingItemWithSameVariation = prevItems.find(item => 
-          item.menuItem.id === menuItem.id && 
-          item.menuItem.customization?.variation?.id === menuItem.customization?.variation?.id
-        );
-        
-        if (existingItemWithSameVariation) {
-          // Update quantity if item with same variation exists
-          return prevItems.map(item => 
-            (item.menuItem.id === menuItem.id && 
-             item.menuItem.customization?.variation?.id === menuItem.customization?.variation?.id)
-              ? { ...item, quantity: item.quantity + quantity } 
-              : item
-          );
-        } else {
-          // Add new item with variation
-          const newItem = {
-            menuItem: {
-              ...menuItem
-            },
-            quantity,
-            // Add display price for showing in cart (original price + customizations)
-            displayPrice: totalItemPrice
-          };
-          return [...prevItems, newItem];
-        }
+      // Find item with the same ID AND variation
+      const existingItemIndex = prevItems.findIndex(item => 
+        getCartItemKey(item.menuItem) === cartItemKey
+      );
+      
+      if (existingItemIndex >= 0) {
+        // Update quantity if item with same ID and variation exists
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + quantity
+        };
+        return updatedItems;
       } else {
-        // For items without variation, check if the exact same item exists
-        const existingItemWithoutVariation = prevItems.find(item => 
-          item.menuItem.id === menuItem.id && 
-          !item.menuItem.customization?.variation
-        );
-        
-        if (existingItemWithoutVariation) {
-          // Update quantity if exact same item exists
-          return prevItems.map(item => 
-            (item.menuItem.id === menuItem.id && !item.menuItem.customization?.variation)
-              ? { ...item, quantity: item.quantity + quantity } 
-              : item
-          );
-        } else {
-          // Add new item without variation
-          const newItem = {
-            menuItem: {
-              ...menuItem
-            },
-            quantity,
-            // For items without customization, display price is same as base price
-            displayPrice: totalItemPrice
-          };
-          return [...prevItems, newItem];
-        }
+        // Add new item with variation
+        const newItem = {
+          menuItem: {
+            ...menuItem
+          },
+          quantity,
+          // Add display price for showing in cart (original price + customizations)
+          displayPrice: totalItemPrice
+        };
+        return [...prevItems, newItem];
       }
     });
     
@@ -198,24 +178,46 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Remove an item from the cart
-  const removeFromCart = (menuItemId: string) => {
-    setCartItems((prevItems) => 
-      prevItems.filter(item => item.menuItem.id !== menuItemId)
-    );
+  // Remove an item from the cart - updated to handle variations
+  const removeFromCart = (menuItemId: string, variationId?: string | null) => {
+    setCartItems((prevItems) => {
+      if (variationId) {
+        // Remove specific variation of an item
+        return prevItems.filter(item => 
+          !(item.menuItem.id === menuItemId && 
+            item.menuItem.customization?.variation?.id === variationId)
+        );
+      } else {
+        // Remove all variations of this item
+        return prevItems.filter(item => item.menuItem.id !== menuItemId);
+      }
+    });
   };
 
-  // Update the quantity of an item
-  const updateQuantity = (menuItemId: string, quantity: number) => {
+  // Update the quantity of an item - updated to handle variations
+  const updateQuantity = (menuItemId: string, quantity: number, variationId?: string | null) => {
     if (quantity < 1) {
-      removeFromCart(menuItemId);
+      removeFromCart(menuItemId, variationId);
       return;
     }
     
     setCartItems((prevItems) => 
-      prevItems.map(item => 
-        item.menuItem.id === menuItemId ? { ...item, quantity } : item
-      )
+      prevItems.map(item => {
+        if (variationId) {
+          // Update specific variation
+          if (item.menuItem.id === menuItemId && 
+              item.menuItem.customization?.variation?.id === variationId) {
+            return { ...item, quantity };
+          }
+          return item;
+        } else {
+          // Update any item with matching ID (regardless of variation)
+          if (item.menuItem.id === menuItemId) {
+            return { ...item, quantity };
+          }
+          return item;
+        }
+      })
     );
   };
 
