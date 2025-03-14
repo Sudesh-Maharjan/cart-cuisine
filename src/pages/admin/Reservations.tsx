@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Loader2, RefreshCw, User, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { useRestaurantSettings } from '@/hooks/use-restaurant-settings';
 
 type Reservation = {
   id: string;
@@ -41,7 +42,9 @@ const statusColors: Record<ReservationStatus, string> = {
 const Reservations: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const { settings } = useRestaurantSettings();
   
   const fetchReservations = async () => {
     try {
@@ -122,8 +125,47 @@ const Reservations: React.FC = () => {
     };
   }, [toast]);
   
+  const sendConfirmationEmail = async (reservation: Reservation) => {
+    try {
+      setIsSending(prev => ({ ...prev, [reservation.id]: true }));
+      
+      // Send email notification
+      const { error } = await supabase.functions.invoke('send-reservation-email', {
+        body: {
+          name: reservation.name,
+          email: reservation.email,
+          date: reservation.date,
+          time: reservation.time,
+          guests: reservation.guests,
+          status: reservation.status
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Email Sent',
+        description: `Confirmation email sent to ${reservation.email}`,
+      });
+    } catch (error: any) {
+      console.error('Failed to send email:', error);
+      toast({
+        title: 'Email Error',
+        description: `Failed to send email: ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(prev => ({ ...prev, [reservation.id]: false }));
+    }
+  };
+  
   const updateReservationStatus = async (id: string, newStatus: string) => {
     try {
+      const reservationToUpdate = reservations.find(r => r.id === id);
+      if (!reservationToUpdate) {
+        throw new Error("Reservation not found");
+      }
+      
       const { error } = await supabase
         .from('reservations')
         .update({ status: newStatus })
@@ -132,16 +174,25 @@ const Reservations: React.FC = () => {
       if (error) throw error;
       
       // Update local state
+      const updatedReservation = { ...reservationToUpdate, status: newStatus };
       setReservations(prevReservations => 
         prevReservations.map(reservation => 
-          reservation.id === id ? { ...reservation, status: newStatus } : reservation
+          reservation.id === id ? updatedReservation : reservation
         )
       );
       
       toast({
         title: 'Status Updated',
-        description: `Reservation for ${id.slice(0, 8)}... is now ${newStatus}`,
+        description: `Reservation for ${reservationToUpdate.name} is now ${newStatus}`,
       });
+      
+      // Send confirmation email for status changes
+      if (reservationToUpdate && reservationToUpdate.status !== newStatus) {
+        await sendConfirmationEmail({
+          ...reservationToUpdate,
+          status: newStatus
+        });
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -247,8 +298,16 @@ const Reservations: React.FC = () => {
                         {reservation.notes || '-'}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
-                          Details
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={isSending[reservation.id]}
+                          onClick={() => sendConfirmationEmail(reservation)}
+                        >
+                          {isSending[reservation.id] ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Send Email
                         </Button>
                       </TableCell>
                     </TableRow>

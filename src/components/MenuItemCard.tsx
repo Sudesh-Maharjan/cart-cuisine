@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MenuItem } from '@/contexts/CartContext';
 import { useCart } from '@/contexts/CartContext';
@@ -97,15 +96,14 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   }, [item.id]);
   
   const handleAddToCart = () => {
-    // Calculate the final price with selected options
-    let finalPrice = item.price;
+    // Create a copy of the item with the original price (not modified by variations)
+    const itemCopy = { ...item };
     
     // Get selected variation details
     let variationDetails = null;
     if (selectedVariation) {
       const variation = variations.find(v => v.id === selectedVariation);
       if (variation) {
-        finalPrice += variation.price_adjustment;
         variationDetails = variation;
       }
     }
@@ -115,15 +113,13 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     selectedAddons.forEach(addonId => {
       const addon = addons.find(a => a.id === addonId);
       if (addon) {
-        finalPrice += addon.price;
         addonDetails.push(addon);
       }
     });
     
     // Create a customized menu item with selected options
-    const customizedItem: MenuItem & { customization?: ItemCustomization } = {
-      ...item,
-      price: finalPrice,
+    const customizedItem: MenuItem = {
+      ...itemCopy,
       customization: {
         variation: variationDetails,
         addons: addonDetails
@@ -165,6 +161,29 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     } else {
       setSelectedAddons([...selectedAddons, addonId]);
     }
+  };
+  
+  // Calculate current price with selected options for display only
+  const calculateCurrentPrice = () => {
+    let price = item.price;
+    
+    // Add selected variation price
+    if (selectedVariation) {
+      const variation = variations.find(v => v.id === selectedVariation);
+      if (variation) {
+        price += variation.price_adjustment;
+      }
+    }
+    
+    // Add selected addon prices
+    selectedAddons.forEach(addonId => {
+      const addon = addons.find(a => a.id === addonId);
+      if (addon) {
+        price += addon.price;
+      }
+    });
+    
+    return price;
   };
   
   // Render list layout
@@ -406,6 +425,15 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                               </span>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(selectedVariation || selectedAddons.length > 0) && (
+                      <div className="mt-4 pt-2 border-t border-border">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Current price:</span>
+                          <span className="text-primary font-semibold">{formatCurrency(calculateCurrentPrice())}</span>
                         </div>
                       </div>
                     )}

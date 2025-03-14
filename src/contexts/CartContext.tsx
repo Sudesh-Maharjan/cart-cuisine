@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
@@ -145,9 +144,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Add new item with variation
           const newItem = {
             menuItem: {
-              ...menuItem,
-              // Save the original base price
-              price: menuItem.price
+              ...menuItem
             },
             quantity,
             // Add display price for showing in cart (original price + customizations)
@@ -173,9 +170,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Add new item without variation
           const newItem = {
             menuItem: {
-              ...menuItem,
-              // Save the original base price
-              price: menuItem.price
+              ...menuItem
             },
             quantity,
             // For items without customization, display price is same as base price
@@ -290,10 +285,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Calculate subtotal based on item price (which now includes variation price) and quantity
+  // Calculate subtotal based on item displayPrice (which includes variation price) and quantity
   const subtotal = cartItems.reduce(
     (sum, item) => {
-      // Use displayPrice if available, otherwise calculate it
+      // Always use displayPrice which has the correct total price with variations
       const itemPrice = item.displayPrice || calculateItemTotalPrice(item.menuItem);
       return sum + (itemPrice * item.quantity);
     }, 
