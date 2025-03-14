@@ -40,11 +40,14 @@ export const useRestaurantSettings = () => {
   };
 
   // Use react-query to cache the settings and make them available globally
+  // regardless of authentication status
   const { data: settings, isLoading: loading, error } = useQuery({
     queryKey: ['restaurantSettings'],
     queryFn: fetchSettings,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     retry: 2,
+    // Ensure we refetch when authentication status changes by not checking for auth
+    refetchOnWindowFocus: true
   });
 
   return { settings, loading, error: error ? (error as Error) : null };

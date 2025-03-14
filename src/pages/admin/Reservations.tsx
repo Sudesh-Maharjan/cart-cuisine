@@ -69,6 +69,57 @@ const Reservations: React.FC = () => {
   
   useEffect(() => {
     fetchReservations();
+    
+    // Set up real-time listener for reservation changes
+    const channel = supabase
+      .channel('reservation-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'reservations' 
+        },
+        (payload) => {
+          console.log('New reservation:', payload);
+          const newReservation = payload.new as Reservation;
+          
+          // Add the new reservation to state
+          setReservations(prev => [newReservation, ...prev]);
+          
+          // Show notification
+          toast({
+            title: 'New Reservation!',
+            description: `${newReservation.name} has made a reservation for ${format(new Date(newReservation.date), 'MMM dd, yyyy')} at ${newReservation.time}.`,
+          });
+          
+          // Play notification sound if available
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(err => console.log('Audio play error:', err));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'reservations' 
+        },
+        (payload) => {
+          console.log('Updated reservation:', payload);
+          const updatedReservation = payload.new as Reservation;
+          
+          // Update the reservation in state
+          setReservations(prev => 
+            prev.map(res => res.id === updatedReservation.id ? updatedReservation : res)
+          );
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [toast]);
   
   const updateReservationStatus = async (id: string, newStatus: string) => {

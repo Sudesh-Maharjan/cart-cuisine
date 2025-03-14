@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -18,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { CalendarIcon, UsersIcon, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Reservation: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +32,7 @@ const Reservation: React.FC = () => {
   const [time, setTime] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Available time slots
   const timeSlots = [
@@ -42,7 +43,7 @@ const Reservation: React.FC = () => {
     '9:00 PM'
   ];
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -55,33 +56,73 @@ const Reservation: React.FC = () => {
       return;
     }
     
-    // In a real app, we would send this to the server
-    console.log({
-      name,
-      email,
-      phone,
-      guests,
-      date,
-      time,
-      specialRequests
-    });
+    setIsSubmitting(true);
     
-    toast({
-      title: "Reservation Confirmed!",
-      description: `Your table for ${guests} has been reserved for ${format(date as Date, 'MMMM d, yyyy')} at ${time}.`,
-    });
-    
-    // Reset form
-    setName('');
-    setEmail('');
-    setPhone('');
-    setGuests('2');
-    setDate(undefined);
-    setTime('');
-    setSpecialRequests('');
-    
-    // Navigate to home page after success
-    setTimeout(() => navigate('/'), 2000);
+    try {
+      // Format date as YYYY-MM-DD for Supabase
+      const formattedDate = format(date as Date, 'yyyy-MM-dd');
+      
+      // Convert time format if needed (e.g. "1:00 PM" to "13:00:00")
+      let formattedTime = time;
+      if (time.includes('AM') || time.includes('PM')) {
+        const [hourMin, period] = time.split(' ');
+        const [hourStr, minStr] = hourMin.split(':');
+        let hour = parseInt(hourStr);
+        
+        if (period === 'PM' && hour < 12) {
+          hour += 12;
+        } else if (period === 'AM' && hour === 12) {
+          hour = 0;
+        }
+        
+        formattedTime = `${hour.toString().padStart(2, '0')}:${minStr}:00`;
+      }
+      
+      // Insert the reservation into Supabase
+      const { data, error } = await supabase
+        .from('reservations')
+        .insert({
+          name,
+          email,
+          phone,
+          guests: parseInt(guests),
+          date: formattedDate,
+          time: formattedTime,
+          notes: specialRequests,
+          status: 'pending'
+        })
+        .select();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Reservation Confirmed!",
+        description: `Your table for ${guests} has been reserved for ${format(date as Date, 'MMMM d, yyyy')} at ${time}.`,
+      });
+      
+      // Reset form
+      setName('');
+      setEmail('');
+      setPhone('');
+      setGuests('2');
+      setDate(undefined);
+      setTime('');
+      setSpecialRequests('');
+      
+      // Navigate to home page after success
+      setTimeout(() => navigate('/'), 2000);
+    } catch (error: any) {
+      console.error('Error submitting reservation:', error);
+      toast({
+        title: "Reservation Failed",
+        description: error.message || "There was a problem saving your reservation. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -243,9 +284,19 @@ const Reservation: React.FC = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isSubmitting}
                   >
-                    <UsersIcon className="mr-2 h-4 w-4" />
-                    Reserve Table
+                    {isSubmitting ? (
+                      <>
+                        <span className="animate-spin mr-2">●</span>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <UsersIcon className="mr-2 h-4 w-4" />
+                        Reserve Table
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>

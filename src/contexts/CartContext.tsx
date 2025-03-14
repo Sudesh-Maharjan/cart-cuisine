@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
@@ -18,6 +19,7 @@ export type MenuItem = {
 export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
+  displayPrice?: number; // Display price for showing in cart items
 };
 
 type CartContextType = {
@@ -98,28 +100,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [userId]);
 
-  // Add an item to the cart - modified to handle variations correctly
-  const addToCart = (menuItem: MenuItem, quantity = 1) => {
-    // Calculate the final price including variations
-    let finalPrice = menuItem.price;
+  // Calculate the total price for a menu item including all customizations
+  const calculateItemTotalPrice = (menuItem: MenuItem): number => {
+    // Start with the base price
+    let totalPrice = menuItem.price;
     
     // Add price adjustment from variation if present
     if (menuItem.customization?.variation) {
-      finalPrice += menuItem.customization.variation.price_adjustment;
+      totalPrice += menuItem.customization.variation.price_adjustment;
     }
     
     // Add prices from addons if present
     if (menuItem.customization?.addons && menuItem.customization.addons.length > 0) {
       menuItem.customization.addons.forEach(addon => {
-        finalPrice += addon.price;
+        totalPrice += addon.price;
       });
     }
     
-    // Create a copy of the menu item with the calculated price
-    const itemToAdd = {
-      ...menuItem,
-      price: finalPrice
-    };
+    return totalPrice;
+  };
+
+  // Add an item to the cart - modified to handle variations correctly
+  const addToCart = (menuItem: MenuItem, quantity = 1) => {
+    // Calculate the total price including all customizations
+    const totalItemPrice = calculateItemTotalPrice(menuItem);
     
     setCartItems((prevItems) => {
       // If item has a variation, we need to check if an item with the same variation exists
@@ -139,7 +143,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         } else {
           // Add new item with variation
-          return [...prevItems, { menuItem: itemToAdd, quantity }];
+          const newItem = {
+            menuItem: {
+              ...menuItem,
+              // Save the original base price
+              price: menuItem.price
+            },
+            quantity,
+            // Add display price for showing in cart (original price + customizations)
+            displayPrice: totalItemPrice
+          };
+          return [...prevItems, newItem];
         }
       } else {
         // For items without variation, check if the exact same item exists
@@ -157,7 +171,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         } else {
           // Add new item without variation
-          return [...prevItems, { menuItem: itemToAdd, quantity }];
+          const newItem = {
+            menuItem: {
+              ...menuItem,
+              // Save the original base price
+              price: menuItem.price
+            },
+            quantity,
+            // For items without customization, display price is same as base price
+            displayPrice: totalItemPrice
+          };
+          return [...prevItems, newItem];
         }
       }
     });
@@ -268,7 +292,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Calculate subtotal based on item price (which now includes variation price) and quantity
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + (item.menuItem.price * item.quantity), 
+    (sum, item) => {
+      // Use displayPrice if available, otherwise calculate it
+      const itemPrice = item.displayPrice || calculateItemTotalPrice(item.menuItem);
+      return sum + (itemPrice * item.quantity);
+    }, 
     0
   );
   
