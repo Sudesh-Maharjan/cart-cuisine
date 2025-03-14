@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Restaurant Info */}
           <div>
-            <h3 className="text-lg font-serif font-medium mb-4">
+            <h3 className="text-lg font-serif font-medium mb-4 dark:text-white">
               {settings?.restaurant_name || 'Our Restaurant'}
             </h3>
             {settings?.logo_url && (
@@ -25,25 +25,25 @@ const Footer: React.FC = () => {
                 />
               </div>
             )}
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm dark:text-gray-300">
               Serving delicious food with love and passion. We are dedicated to providing an exceptional dining experience.
             </p>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-serif font-medium mb-4">Contact Us</h3>
+            <h3 className="text-lg font-serif font-medium mb-4 dark:text-white">Contact Us</h3>
             <ul className="space-y-3">
               {settings?.restaurant_address && (
                 <li className="flex items-start">
                   <MapPin className="h-5 w-5 mr-2 mt-0.5 text-primary" />
-                  <span className="text-sm">{settings.restaurant_address}</span>
+                  <span className="text-sm dark:text-gray-300">{settings.restaurant_address}</span>
                 </li>
               )}
               {settings?.restaurant_phone && (
                 <li className="flex items-center">
                   <Phone className="h-5 w-5 mr-2 text-primary" />
-                  <a href={`tel:${settings.restaurant_phone}`} className="text-sm hover:text-primary transition-colors">
+                  <a href={`tel:${settings.restaurant_phone}`} className="text-sm hover:text-primary transition-colors dark:text-gray-300">
                     {settings.restaurant_phone}
                   </a>
                 </li>
@@ -51,7 +51,7 @@ const Footer: React.FC = () => {
               {settings?.restaurant_email && (
                 <li className="flex items-center">
                   <Mail className="h-5 w-5 mr-2 text-primary" />
-                  <a href={`mailto:${settings.restaurant_email}`} className="text-sm hover:text-primary transition-colors">
+                  <a href={`mailto:${settings.restaurant_email}`} className="text-sm hover:text-primary transition-colors dark:text-gray-300">
                     {settings.restaurant_email}
                   </a>
                 </li>
@@ -61,14 +61,14 @@ const Footer: React.FC = () => {
 
           {/* Opening Hours */}
           <div>
-            <h3 className="text-lg font-serif font-medium mb-4">Opening Hours</h3>
+            <h3 className="text-lg font-serif font-medium mb-4 dark:text-white">Opening Hours</h3>
             <ul className="space-y-3">
               {settings?.working_hours_weekday && (
                 <li className="flex items-start">
                   <Clock className="h-5 w-5 mr-2 mt-0.5 text-primary" />
                   <div>
-                    <p className="font-medium text-sm">Monday - Friday</p>
-                    <p className="text-sm text-muted-foreground">{settings.working_hours_weekday}</p>
+                    <p className="font-medium text-sm dark:text-white">Monday - Friday</p>
+                    <p className="text-sm text-muted-foreground dark:text-gray-300">{settings.working_hours_weekday}</p>
                   </div>
                 </li>
               )}
@@ -76,8 +76,8 @@ const Footer: React.FC = () => {
                 <li className="flex items-start">
                   <Clock className="h-5 w-5 mr-2 mt-0.5 text-primary" />
                   <div>
-                    <p className="font-medium text-sm">Saturday - Sunday</p>
-                    <p className="text-sm text-muted-foreground">{settings.working_hours_weekend}</p>
+                    <p className="font-medium text-sm dark:text-white">Saturday - Sunday</p>
+                    <p className="text-sm text-muted-foreground dark:text-gray-300">{settings.working_hours_weekend}</p>
                   </div>
                 </li>
               )}
@@ -86,7 +86,7 @@ const Footer: React.FC = () => {
 
           {/* Social & Quick Links */}
           <div>
-            <h3 className="text-lg font-serif font-medium mb-4">Follow Us</h3>
+            <h3 className="text-lg font-serif font-medium mb-4 dark:text-white">Follow Us</h3>
             <div className="flex space-x-4 mb-6">
               {settings?.social_facebook && (
                 <a 
@@ -119,74 +119,34 @@ const Footer: React.FC = () => {
                 </a>
               )}
             </div>
-            <h3 className="text-lg font-serif font-medium mb-4">Quick Links</h3>
+            <h3 className="text-lg font-serif font-medium mb-4 dark:text-white">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/menu" className="text-sm hover:text-primary transition-colors">
+                <Link to="/menu" className="text-sm hover:text-primary transition-colors dark:text-gray-300">
                   Menu
                 </Link>
               </li>
               <li>
-                <Link to="/reservation" className="text-sm hover:text-primary transition-colors">
+                <Link to="/reservation" className="text-sm hover:text-primary transition-colors dark:text-gray-300">
                   Reservations
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-sm hover:text-primary transition-colors">
+                <Link to="/contact" className="text-sm hover:text-primary transition-colors dark:text-gray-300">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-sm hover:text-primary transition-colors">
+                <Link to="/about" className="text-sm hover:text-primary transition-colors dark:text-gray-300">
                   About Us
                 </Link>
-              </li>
-            </ul>
-          </div>
-          
-          {/* Contact Info */}
-          <div>
-            <h4 className="font-serif text-lg font-bold mb-4">Contact Us</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start space-x-3">
-                <MapPin size={20} className="mt-1 flex-shrink-0" />
-                <span className="text-gray-300">123 Culinary Lane, Foodville, FC 12345</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone size={20} className="flex-shrink-0" />
-                <span className="text-gray-300">(555) 123-4567</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Mail size={20} className="flex-shrink-0" />
-                <span className="text-gray-300">info@savoria.com</span>
-              </li>
-            </ul>
-          </div>
-          
-          {/* Opening Hours */}
-          <div>
-            <h4 className="font-serif text-lg font-bold mb-4">Opening Hours</h4>
-            <ul className="space-y-2">
-              <li className="flex items-start space-x-3">
-                <Clock size={20} className="mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-gray-300">Monday - Friday</p>
-                  <p className="text-restaurant-secondary">11:00 AM - 10:00 PM</p>
-                </div>
-              </li>
-              <li className="flex items-start space-x-3">
-                <Clock size={20} className="mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-gray-300">Saturday - Sunday</p>
-                  <p className="text-restaurant-secondary">10:00 AM - 11:00 PM</p>
-                </div>
               </li>
             </ul>
           </div>
         </div>
         
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-          <p>© {new Date().getFullYear()} Savoria Restaurant. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {settings?.restaurant_name || 'Restaurant'}. All rights reserved.</p>
         </div>
       </div>
     </footer>

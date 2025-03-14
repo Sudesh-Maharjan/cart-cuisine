@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
@@ -101,6 +100,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Add an item to the cart - modified to handle variations correctly
   const addToCart = (menuItem: MenuItem, quantity = 1) => {
+    // Calculate the final price including variations
+    let finalPrice = menuItem.price;
+    
+    // Add price adjustment from variation if present
+    if (menuItem.customization?.variation) {
+      finalPrice += menuItem.customization.variation.price_adjustment;
+    }
+    
+    // Add prices from addons if present
+    if (menuItem.customization?.addons && menuItem.customization.addons.length > 0) {
+      menuItem.customization.addons.forEach(addon => {
+        finalPrice += addon.price;
+      });
+    }
+    
+    // Create a copy of the menu item with the calculated price
+    const itemToAdd = {
+      ...menuItem,
+      price: finalPrice
+    };
+    
     setCartItems((prevItems) => {
       // If item has a variation, we need to check if an item with the same variation exists
       if (menuItem.customization?.variation) {
@@ -119,7 +139,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         } else {
           // Add new item with variation
-          return [...prevItems, { menuItem, quantity }];
+          return [...prevItems, { menuItem: itemToAdd, quantity }];
         }
       } else {
         // For items without variation, check if the exact same item exists
@@ -137,7 +157,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         } else {
           // Add new item without variation
-          return [...prevItems, { menuItem, quantity }];
+          return [...prevItems, { menuItem: itemToAdd, quantity }];
         }
       }
     });
@@ -246,11 +266,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Calculate subtotal, tax, and total
+  // Calculate subtotal based on item price (which now includes variation price) and quantity
   const subtotal = cartItems.reduce(
     (sum, item) => sum + (item.menuItem.price * item.quantity), 
     0
   );
+  
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + tax;
 

@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface RestaurantSettings {
   id: string;
@@ -20,40 +21,31 @@ interface RestaurantSettings {
 }
 
 export const useRestaurantSettings = () => {
-  const [settings, setSettings] = useState<Partial<RestaurantSettings> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const fetchSettings = async (): Promise<Partial<RestaurantSettings> | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('restaurant_settings')
+        .select('*')
+        .maybeSingle();
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('restaurant_settings')
-          .select('*')
-          .limit(1)
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // No data found
-            setSettings(null);
-          } else {
-            throw error;
-          }
-        } else {
-          setSettings(data);
-        }
-      } catch (err: any) {
-        console.error('Error fetching restaurant settings:', err);
-        setError(new Error(err.message || 'Failed to fetch restaurant settings'));
-      } finally {
-        setLoading(false);
+      if (error) {
+        throw error;
       }
-    };
+      
+      return data;
+    } catch (err: any) {
+      console.error('Error fetching restaurant settings:', err);
+      throw new Error(err.message || 'Failed to fetch restaurant settings');
+    }
+  };
 
-    fetchSettings();
-  }, []);
+  // Use react-query to cache the settings and make them available globally
+  const { data: settings, isLoading: loading, error } = useQuery({
+    queryKey: ['restaurantSettings'],
+    queryFn: fetchSettings,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    retry: 2,
+  });
 
-  return { settings, loading, error };
+  return { settings, loading, error: error ? (error as Error) : null };
 };
