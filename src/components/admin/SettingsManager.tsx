@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useRestaurantSettings } from '@/hooks/use-restaurant-settings';
 import {
   Tabs,
   TabsContent,
@@ -63,6 +65,7 @@ const SettingsManager: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { refetchSettings } = useRestaurantSettings();
 
   useEffect(() => {
     fetchSettings();
@@ -186,7 +189,10 @@ const SettingsManager: React.FC = () => {
         description: 'Settings saved successfully',
       });
       
-      // Refresh settings
+      // Refresh settings globally by triggering the react-query refetch
+      refetchSettings();
+      
+      // Refresh local settings
       fetchSettings();
     } catch (error: any) {
       toast({

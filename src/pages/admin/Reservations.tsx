@@ -44,7 +44,12 @@ const Reservations: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { settings } = useRestaurantSettings();
+  const { settings, refetchSettings } = useRestaurantSettings();
+  
+  // Make sure we have the latest settings
+  useEffect(() => {
+    refetchSettings();
+  }, [refetchSettings]);
   
   const fetchReservations = async () => {
     try {
@@ -131,8 +136,8 @@ const Reservations: React.FC = () => {
       
       console.log('Sending email to:', reservation.email);
       
-      // Send email notification
-      const { data, error } = await supabase.functions.invoke('send-reservation-email', {
+      // Send email notification with improved logging and error handling
+      const response = await supabase.functions.invoke('send-reservation-email', {
         body: {
           name: reservation.name,
           email: reservation.email,
@@ -143,9 +148,17 @@ const Reservations: React.FC = () => {
         }
       });
       
-      console.log('Email function response:', data, error);
+      console.log('Email function response status:', response.status);
       
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(`Email API error: ${response.error.message}`);
+      }
+      
+      if (!response.data) {
+        throw new Error('No response data from email function');
+      }
+
+      console.log('Email function response data:', response.data);
       
       toast({
         title: 'Email Sent',
@@ -190,12 +203,18 @@ const Reservations: React.FC = () => {
         description: `Reservation for ${reservationToUpdate.name} is now ${newStatus}`,
       });
       
-      // Send confirmation email for status changes
+      // Send confirmation email for status changes with better logging
       if (reservationToUpdate && reservationToUpdate.status !== newStatus) {
-        await sendConfirmationEmail({
-          ...reservationToUpdate,
-          status: newStatus
-        });
+        console.log(`Status changed from ${reservationToUpdate.status} to ${newStatus}. Sending email...`);
+        try {
+          await sendConfirmationEmail({
+            ...reservationToUpdate,
+            status: newStatus
+          });
+        } catch (emailError: any) {
+          console.error('Error sending status change email:', emailError);
+          // We already show a toast in sendConfirmationEmail so no need for another one
+        }
       }
     } catch (error: any) {
       toast({

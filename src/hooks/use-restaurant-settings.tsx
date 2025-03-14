@@ -39,16 +39,23 @@ export const useRestaurantSettings = () => {
     }
   };
 
-  // Use react-query to cache the settings and make them available globally
-  // regardless of authentication status
-  const { data: settings, isLoading: loading, error } = useQuery({
+  // Use react-query to cache the settings, but with shorter stale time
+  // to ensure it refreshes more frequently
+  const { data: settings, isLoading: loading, error, refetch } = useQuery({
     queryKey: ['restaurantSettings'],
     queryFn: fetchSettings,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 1, // Cache for only 1 minute (reduced from 5)
+    refetchInterval: 1000 * 60 * 2, // Refetch every 2 minutes
     retry: 2,
-    // Ensure we refetch when authentication status changes by not checking for auth
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true
   });
 
-  return { settings, loading, error: error ? (error as Error) : null };
+  return { 
+    settings, 
+    loading, 
+    error: error ? (error as Error) : null,
+    refetchSettings: refetch // Expose refetch function for manual refreshes
+  };
 };
