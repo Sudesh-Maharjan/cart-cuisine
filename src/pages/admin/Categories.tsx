@@ -139,14 +139,20 @@ const CategoriesPage: React.FC = () => {
         const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
         const filePath = `categories/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('images')
-          .upload(filePath, imageFile);
+        const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, imageFile, { upsert: true });
+      
 
         if (uploadError) throw uploadError;
 
         const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-        imageUrl = data.publicUrl;
+        if (data) {
+          imageUrl = data.publicUrl;
+        } else {
+          throw new Error("Failed to retrieve public URL");
+        }
+        
       }
 
       // Create or update category
@@ -367,42 +373,19 @@ const CategoriesPage: React.FC = () => {
 
             <div className="space-y-2">
               <Label className="dark:text-white">Category Image</Label>
-              <div className="flex items-center gap-4">
-                {imagePreview ? (
-                  <div className="relative h-20 w-32">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="h-full w-full object-cover rounded"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                      onClick={removeImage}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center h-20 w-32 border-2 border-dashed dark:border-gray-600 rounded-md cursor-pointer hover:bg-muted/10">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground dark:text-gray-400" />
-                    <span className="text-xs text-muted-foreground dark:text-gray-400 mt-1">Upload</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
-                  </label>
-                )}
+              <Input
+    id="image_url"
+    value={formData.image_url}
+    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+    placeholder="Enter category image URL"
+    className="dark:bg-gray-900 dark:text-white dark:border-gray-700"
+  />
               </div>
               {!imagePreview && (
                 <p className="text-xs text-muted-foreground dark:text-gray-400">
                   Recommended size: 600x400 pixels
                 </p>
               )}
-            </div>
           </div>
 
           <DialogFooter>
