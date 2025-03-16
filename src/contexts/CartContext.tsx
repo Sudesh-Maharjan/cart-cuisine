@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ItemCustomization } from '@/components/MenuItemCard';
+import { supabase } from '@/integrations/supabase/client';
+import { setupOrderSubscription } from '@/utils/orderSubscription';
 
 // Types
 export type MenuItem = {
@@ -17,13 +19,14 @@ export type MenuItem = {
 export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
+  displayPrice?: number; // Display price for showing in cart items
 };
 
 type CartContextType = {
   cartItems: CartItem[];
   addToCart: (menuItem: MenuItem, quantity?: number) => void;
-  removeFromCart: (menuItemId: string) => void;
-  updateQuantity: (menuItemId: string, quantity: number) => void;
+  removeFromCart: (menuItemId: string, variationId?: string | null) => void;
+  updateQuantity: (menuItemId: string, quantity: number, variationId?: string | null) => void;
   clearCart: () => void;
   subtotal: number;
   tax: number;
@@ -49,6 +52,27 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+
+  // Get the current user on initial load and when auth state changes
+  useEffect(() => {
+    // Get initial user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id);
+    };
+    
+    getCurrentUser();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Load cart from localStorage on initial mount
   useEffect(() => {
@@ -67,21 +91,73 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Add an item to the cart
+  // Set up real-time order status updates for the logged-in user
+  useEffect(() => {
+    const cleanup = setupOrderSubscription(userId);
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [userId]);
+
+  // Calculate the total price for a menu item including all customizations
+  const calculateItemTotalPrice = (menuItem: MenuItem): number => {
+    // Start with the base price
+    let totalPrice = menuItem.price;
+    
+    // Add price adjustment from variation if present
+    if (menuItem.customization?.variation) {
+      totalPrice += menuItem.customization.variation.price_adjustment;
+    }
+    
+    // Add prices from addons if present
+    if (menuItem.customization?.addons && menuItem.customization.addons.length > 0) {
+      menuItem.customization.addons.forEach(addon => {
+        totalPrice += addon.price;
+      });
+    }
+    
+    return totalPrice;
+  };
+
+  // Generate a unique key for cart items that includes variation info
+  const getCartItemKey = (menuItem: MenuItem): string => {
+    const baseKey = menuItem.id;
+    const variationKey = menuItem.customization?.variation?.id || 'no-variation';
+    return `${baseKey}-${variationKey}`;
+  };
+
+  // Add an item to the cart - modified to handle variations correctly
   const addToCart = (menuItem: MenuItem, quantity = 1) => {
+    // Calculate the total price including all customizations
+    const totalItemPrice = calculateItemTotalPrice(menuItem);
+    const cartItemKey = getCartItemKey(menuItem);
+    
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find(item => item.menuItem.id === menuItem.id);
+      // Find item with the same ID AND variation
+      const existingItemIndex = prevItems.findIndex(item => 
+        getCartItemKey(item.menuItem) === cartItemKey
+      );
       
-      if (existingItem) {
-        // Update quantity if item already exists
-        return prevItems.map(item => 
-          item.menuItem.id === menuItem.id 
-            ? { ...item, quantity: item.quantity + quantity } 
-            : item
-        );
+      if (existingItemIndex >= 0) {
+        // Update quantity if item with same ID and variation exists
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + quantity
+        };
+        return updatedItems;
       } else {
-        // Add new item
-        return [...prevItems, { menuItem, quantity }];
+        // Add new item with variation
+        const newItem = {
+          menuItem: {
+            ...menuItem
+          },
+          quantity,
+          // Add display price for showing in cart (original price + customizations)
+          displayPrice: totalItemPrice
+        };
+        return [...prevItems, newItem];
       }
     });
     
@@ -102,24 +178,46 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Remove an item from the cart
-  const removeFromCart = (menuItemId: string) => {
-    setCartItems((prevItems) => 
-      prevItems.filter(item => item.menuItem.id !== menuItemId)
-    );
+  // Remove an item from the cart - updated to handle variations
+  const removeFromCart = (menuItemId: string, variationId?: string | null) => {
+    setCartItems((prevItems) => {
+      if (variationId) {
+        // Remove specific variation of an item
+        return prevItems.filter(item => 
+          !(item.menuItem.id === menuItemId && 
+            item.menuItem.customization?.variation?.id === variationId)
+        );
+      } else {
+        // Remove all variations of this item
+        return prevItems.filter(item => item.menuItem.id !== menuItemId);
+      }
+    });
   };
 
-  // Update the quantity of an item
-  const updateQuantity = (menuItemId: string, quantity: number) => {
+  // Update the quantity of an item - updated to handle variations
+  const updateQuantity = (menuItemId: string, quantity: number, variationId?: string | null) => {
     if (quantity < 1) {
-      removeFromCart(menuItemId);
+      removeFromCart(menuItemId, variationId);
       return;
     }
     
     setCartItems((prevItems) => 
-      prevItems.map(item => 
-        item.menuItem.id === menuItemId ? { ...item, quantity } : item
-      )
+      prevItems.map(item => {
+        if (variationId) {
+          // Update specific variation
+          if (item.menuItem.id === menuItemId && 
+              item.menuItem.customization?.variation?.id === variationId) {
+            return { ...item, quantity };
+          }
+          return item;
+        } else {
+          // Update any item with matching ID (regardless of variation)
+          if (item.menuItem.id === menuItemId) {
+            return { ...item, quantity };
+          }
+          return item;
+        }
+      })
     );
   };
 
@@ -189,11 +287,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Calculate subtotal, tax, and total
+  // Calculate subtotal based on item displayPrice (which includes variation price) and quantity
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.menuItem.price * item.quantity, 
+    (sum, item) => {
+      // Always use displayPrice which has the correct total price with variations
+      const itemPrice = item.displayPrice || calculateItemTotalPrice(item.menuItem);
+      return sum + (itemPrice * item.quantity);
+    }, 
     0
   );
+  
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + tax;
 

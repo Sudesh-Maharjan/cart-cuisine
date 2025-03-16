@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MenuItem } from '@/contexts/CartContext';
 import { useCart } from '@/contexts/CartContext';
@@ -10,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface MenuItemCardProps {
   item: MenuItem;
   showControls?: boolean;
+  layout?: 'grid' | 'list';
 }
 
 type Variation = {
@@ -29,7 +29,11 @@ export interface ItemCustomization {
   addons: { id: string; name: string; price: number }[];
 }
 
-const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }) => {
+const MenuItemCard: React.FC<MenuItemCardProps> = ({ 
+  item, 
+  showControls = true, 
+  layout = 'grid' 
+}) => {
   const { addToCart, cartItems, updateQuantity } = useCart();
   const [variations, setVariations] = useState<Variation[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -37,10 +41,27 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [showOptions, setShowOptions] = useState(false);
   
-  const cartItem = cartItems.find(cartItem => cartItem.menuItem.id === item.id);
-  const quantity = cartItem ? cartItem.quantity : 0;
+  const getCartItemKey = (itemId: string, variationId?: string | null): string => {
+    return `${itemId}-${variationId || 'no-variation'}`;
+  };
   
-  // Calculate price range
+  const findMatchingCartItems = () => {
+    if (selectedVariation) {
+      return cartItems.filter(cartItem => 
+        cartItem.menuItem.id === item.id && 
+        cartItem.menuItem.customization?.variation?.id === selectedVariation
+      );
+    } else {
+      return cartItems.filter(cartItem => 
+        cartItem.menuItem.id === item.id && 
+        !cartItem.menuItem.customization?.variation
+      );
+    }
+  };
+  
+  const matchingCartItems = findMatchingCartItems();
+  const quantity = matchingCartItems.reduce((sum, item) => sum + item.quantity, 0);
+  
   const minPrice = item.price;
   const maxPrice = variations.length > 0 
     ? item.price + Math.max(...variations.map(v => v.price_adjustment))
@@ -50,11 +71,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
   const hasAddons = addons.length > 0;
   const hasOptions = hasVariations || hasAddons;
   
-  // Fetch variations and addons
   useEffect(() => {
     const fetchItemOptions = async () => {
       try {
-        // Fetch variations
         const { data: variationsData, error: variationsError } = await supabase
           .from('item_variations')
           .select('*')
@@ -63,7 +82,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
         if (variationsError) throw variationsError;
         setVariations(variationsData || []);
         
-        // Fetch addons through the mapping table
         const { data: addonsMappingData, error: addonsMappingError } = await supabase
           .from('item_addons_map')
           .select('addon_id')
@@ -91,33 +109,26 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
   }, [item.id]);
   
   const handleAddToCart = () => {
-    // Calculate the final price with selected options
-    let finalPrice = item.price;
+    const itemCopy = { ...item };
     
-    // Get selected variation details
     let variationDetails = null;
     if (selectedVariation) {
       const variation = variations.find(v => v.id === selectedVariation);
       if (variation) {
-        finalPrice += variation.price_adjustment;
         variationDetails = variation;
       }
     }
     
-    // Get selected addon details
     const addonDetails: Addon[] = [];
     selectedAddons.forEach(addonId => {
       const addon = addons.find(a => a.id === addonId);
       if (addon) {
-        finalPrice += addon.price;
         addonDetails.push(addon);
       }
     });
     
-    // Create a customized menu item with selected options
-    const customizedItem: MenuItem & { customization?: ItemCustomization } = {
-      ...item,
-      price: finalPrice,
+    const customizedItem: MenuItem = {
+      ...itemCopy,
       customization: {
         variation: variationDetails,
         addons: addonDetails
@@ -127,15 +138,21 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
     console.log('Adding to cart:', customizedItem);
     addToCart(customizedItem);
     
-    // Reset selections after adding to cart
     setSelectedVariation(null);
     setSelectedAddons([]);
     setShowOptions(false);
   };
   
   const handleUpdateQuantity = (newQuantity: number) => {
-    console.log('Updating quantity:', item.id, newQuantity);
-    updateQuantity(item.id, newQuantity);
+    if (selectedVariation) {
+      updateQuantity(item.id, newQuantity, selectedVariation);
+    } else {
+      if (matchingCartItems.length > 0) {
+        updateQuantity(item.id, newQuantity, null);
+      } else if (newQuantity > 0) {
+        handleAddToCart();
+      }
+    }
   };
   
   const toggleAddon = (addonId: string) => {
@@ -146,8 +163,164 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
     }
   };
   
+  const calculateCurrentPrice = () => {
+    let price = item.price;
+    
+    if (selectedVariation) {
+      const variation = variations.find(v => v.id === selectedVariation);
+      if (variation) {
+        price += variation.price_adjustment;
+      }
+    }
+    
+    selectedAddons.forEach(addonId => {
+      const addon = addons.find(a => a.id === addonId);
+      if (addon) {
+        price += addon.price;
+      }
+    });
+    
+    return price;
+  };
+  
+  if (layout === 'list') {
+    return (
+      <div className="food-card-list hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md p-4 flex justify-between items-center dark:bg-gray-800">
+        <div className="flex-grow mr-4">
+          <div className="flex justify-between mb-1">
+            <h3 className="font-serif text-base font-semibold dark:text-white">{item.name}</h3>
+            <span className="text-primary font-medium text-sm">
+              {minPrice === maxPrice 
+                ? formatCurrency(minPrice) 
+                : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`}
+            </span>
+          </div>
+          
+          {hasVariations && (
+            <div className="text-xs text-muted-foreground mb-1">
+              {variations.length} {variations.length === 1 ? 'variation' : 'variations'} available
+            </div>
+          )}
+          
+          {showOptions && hasOptions && (
+            <div className="mt-2 space-y-3 bg-muted/30 p-2 rounded-md dark:bg-gray-700/50">
+              {hasVariations && (
+                <div>
+                  <h4 className="text-xs font-medium mb-1 dark:text-gray-200">Size/Variation:</h4>
+                  <div className="space-y-1">
+                    {variations.map(variation => (
+                      <div 
+                        key={variation.id}
+                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded dark:hover:bg-gray-600/50"
+                        onClick={() => setSelectedVariation(variation.id === selectedVariation ? null : variation.id)}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full border ${
+                            selectedVariation === variation.id 
+                              ? 'bg-primary border-primary' 
+                              : 'border-border dark:border-gray-500'
+                          } mr-1 flex items-center justify-center`}>
+                            {selectedVariation === variation.id && (
+                              <Check size={10} className="text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-xs dark:text-white">{variation.name}</span>
+                        </div>
+                        <span className="text-xs dark:text-white">
+                          {variation.price_adjustment > 0 ? `+${formatCurrency(variation.price_adjustment)}` : 'No charge'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {hasAddons && (
+                <div>
+                  <h4 className="text-xs font-medium mb-1 dark:text-gray-200">Add-ons:</h4>
+                  <div className="space-y-1">
+                    {addons.map(addon => (
+                      <div 
+                        key={addon.id}
+                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded dark:hover:bg-gray-600/50"
+                        onClick={() => toggleAddon(addon.id)}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded border ${
+                            selectedAddons.includes(addon.id) 
+                              ? 'bg-primary border-primary' 
+                              : 'border-border dark:border-gray-500'
+                          } mr-1 flex items-center justify-center`}>
+                            {selectedAddons.includes(addon.id) && (
+                              <Check size={10} className="text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-xs dark:text-white">{addon.name}</span>
+                        </div>
+                        <span className="text-xs dark:text-white">
+                          {`+${formatCurrency(addon.price)}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {showControls && (
+          <div className="flex flex-col items-end space-y-2">
+            {hasOptions && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-xs p-0 px-2"
+                onClick={() => setShowOptions(!showOptions)}
+              >
+                {showOptions ? "Hide" : "Customize"}
+                {showOptions ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
+              </Button>
+            )}
+            
+            {quantity > 0 ? (
+              <div className="flex items-center space-x-1">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-6 w-6 border-primary text-primary hover:bg-primary/10"
+                  onClick={() => handleUpdateQuantity(quantity - 1)}
+                >
+                  <Minus size={12} />
+                </Button>
+                <span className="font-medium w-6 text-center text-sm dark:text-white">{quantity}</span>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-6 w-6 border-primary text-primary hover:bg-primary/10"
+                  onClick={() => handleUpdateQuantity(quantity + 1)}
+                >
+                  <Plus size={12} />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleAddToCart}
+                variant="outline"
+                size="sm" 
+                className="text-primary border-primary hover:bg-primary/10"
+              >
+                <Plus size={16} />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+  
   return (
-    <div className="food-card hover:border-primary/30 transition-all duration-300 bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="food-card hover:border-primary/30 transition-all duration-300 bg-card rounded-lg shadow-md overflow-hidden">
       <div className="h-48 overflow-hidden">
         <img 
           src={item.image} 
@@ -203,10 +376,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
                                 <div className={`w-4 h-4 rounded-full border ${
                                   selectedVariation === variation.id 
                                     ? 'bg-primary border-primary' 
-                                    : 'border-gray-300'
+                                    : 'border-border'
                                 } mr-2 flex items-center justify-center`}>
                                   {selectedVariation === variation.id && (
-                                    <Check size={12} className="text-white" />
+                                    <Check size={12} className="text-primary-foreground" />
                                   )}
                                 </div>
                                 <span className="text-sm">{variation.name}</span>
@@ -234,10 +407,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
                                 <div className={`w-4 h-4 rounded border ${
                                   selectedAddons.includes(addon.id) 
                                     ? 'bg-primary border-primary' 
-                                    : 'border-gray-300'
+                                    : 'border-border'
                                 } mr-2 flex items-center justify-center`}>
                                   {selectedAddons.includes(addon.id) && (
-                                    <Check size={12} className="text-white" />
+                                    <Check size={12} className="text-primary-foreground" />
                                   )}
                                 </div>
                                 <span className="text-sm">{addon.name}</span>
@@ -247,6 +420,15 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, showControls = true }
                               </span>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(selectedVariation || selectedAddons.length > 0) && (
+                      <div className="mt-4 pt-2 border-t border-border">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Current price:</span>
+                          <span className="text-primary font-semibold">{formatCurrency(calculateCurrentPrice())}</span>
                         </div>
                       </div>
                     )}

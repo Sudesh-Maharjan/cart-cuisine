@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Loader2, RefreshCw, User, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { useRestaurantSettings } from '@/hooks/use-restaurant-settings';
 
 type Reservation = {
   id: string;
@@ -41,7 +42,14 @@ const statusColors: Record<ReservationStatus, string> = {
 const Reservations: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const { settings, refetchSettings } = useRestaurantSettings();
+  
+  // Make sure we have the latest settings
+  useEffect(() => {
+    refetchSettings();
+  }, [refetchSettings]);
   
   const fetchReservations = async () => {
     try {
@@ -69,10 +77,112 @@ const Reservations: React.FC = () => {
   
   useEffect(() => {
     fetchReservations();
+    
+    // Set up real-time listener for reservation changes
+    const channel = supabase
+      .channel('reservation-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'reservations' 
+        },
+        (payload) => {
+          console.log('New reservation:', payload);
+          const newReservation = payload.new as Reservation;
+          
+          // Add the new reservation to state
+          setReservations(prev => [newReservation, ...prev]);
+          
+          // Show notification
+          toast({
+            title: 'New Reservation!',
+            description: `${newReservation.name} has made a reservation for ${format(new Date(newReservation.date), 'MMM dd, yyyy')} at ${newReservation.time}.`,
+          });
+          
+          // Play notification sound if available
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(err => console.log('Audio play error:', err));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'reservations' 
+        },
+        (payload) => {
+          console.log('Updated reservation:', payload);
+          const updatedReservation = payload.new as Reservation;
+          
+          // Update the reservation in state
+          setReservations(prev => 
+            prev.map(res => res.id === updatedReservation.id ? updatedReservation : res)
+          );
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [toast]);
+  
+  const sendConfirmationEmail = async (reservation: Reservation) => {
+    try {
+      setIsSending(prev => ({ ...prev, [reservation.id]: true }));
+      
+      console.log('Sending email to:', reservation.email);
+      
+      // Send email notification with improved logging and error handling
+      const response = await supabase.functions.invoke('send-reservation-email', {
+        body: {
+          name: reservation.name,
+          email: reservation.email,
+          date: reservation.date,
+          time: reservation.time,
+          guests: reservation.guests,
+          status: reservation.status
+        }
+      });
+      
+      console.log('Email function response status:', response.status);
+      
+      if (response.error) {
+        throw new Error(`Email API error: ${response.error.message}`);
+      }
+      
+      if (!response.data) {
+        throw new Error('No response data from email function');
+      }
+
+      console.log('Email function response data:', response.data);
+      
+      toast({
+        title: 'Email Sent',
+        description: `Confirmation email sent to ${reservation.email}`,
+      });
+    } catch (error: any) {
+      console.error('Failed to send email:', error);
+      toast({
+        title: 'Email Error',
+        description: `Failed to send email: ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(prev => ({ ...prev, [reservation.id]: false }));
+    }
+  };
   
   const updateReservationStatus = async (id: string, newStatus: string) => {
     try {
+      const reservationToUpdate = reservations.find(r => r.id === id);
+      if (!reservationToUpdate) {
+        throw new Error("Reservation not found");
+      }
+      
       const { error } = await supabase
         .from('reservations')
         .update({ status: newStatus })
@@ -81,16 +191,31 @@ const Reservations: React.FC = () => {
       if (error) throw error;
       
       // Update local state
+      const updatedReservation = { ...reservationToUpdate, status: newStatus };
       setReservations(prevReservations => 
         prevReservations.map(reservation => 
-          reservation.id === id ? { ...reservation, status: newStatus } : reservation
+          reservation.id === id ? updatedReservation : reservation
         )
       );
       
       toast({
         title: 'Status Updated',
-        description: `Reservation for ${id.slice(0, 8)}... is now ${newStatus}`,
+        description: `Reservation for ${reservationToUpdate.name} is now ${newStatus}`,
       });
+      
+      // Send confirmation email for status changes with better logging
+      if (reservationToUpdate && reservationToUpdate.status !== newStatus) {
+        console.log(`Status changed from ${reservationToUpdate.status} to ${newStatus}. Sending email...`);
+        try {
+          await sendConfirmationEmail({
+            ...reservationToUpdate,
+            status: newStatus
+          });
+        } catch (emailError: any) {
+          console.error('Error sending status change email:', emailError);
+          // We already show a toast in sendConfirmationEmail so no need for another one
+        }
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -196,8 +321,16 @@ const Reservations: React.FC = () => {
                         {reservation.notes || '-'}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
-                          Details
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={isSending[reservation.id]}
+                          onClick={() => sendConfirmationEmail(reservation)}
+                        >
+                          {isSending[reservation.id] ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Send Email
                         </Button>
                       </TableCell>
                     </TableRow>

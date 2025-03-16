@@ -1,18 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
-import { 
-  ShoppingCart, 
-  Menu, 
-  X, 
-  User, 
-  LogOut, 
-  Settings, 
-  LayoutDashboard 
-} from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { X, Menu, ShoppingCart, User, ChevronDown, LogOut, Settings } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { useRestaurantSettings } from '@/hooks/use-restaurant-settings';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,199 +17,261 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const Navbar: React.FC = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, profile, logout, isAdmin } = useAuth();
+export default function Navbar() {
+  const isMobile = useIsMobile();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { cartItems } = useCart();
   const location = useLocation();
+  const { settings } = useRestaurantSettings();
+  const { isAuthenticated, isAdmin, profile, logout } = useAuth();
   const navigate = useNavigate();
-  
-  // Handle scroll effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-  
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-  
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
-  
-  // Get display name from profile
-  const displayName = profile ? 
-    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
-    'User';
-    
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    navigate('/login');
   };
-  
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled || isMobileMenuOpen ? 'bg-background shadow-md' : 'bg-transparent'
-    }`}>
+    <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="font-serif text-2xl font-bold text-restaurant-primary">
-            Restaurant
+        <div className="flex justify-between items-center">
+          <Link to="/" className="font-serif text-xl font-bold flex items-center">
+            {settings?.logo_url ? (
+              <img 
+                src={settings.logo_url} 
+                alt={settings?.restaurant_name || 'Restaurant Logo'} 
+                className="h-10 mr-2 object-contain"
+              />
+            ) : null}
+            <span>{settings?.restaurant_name || 'Tasty Bites'}</span>
           </Link>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="font-medium hover:text-restaurant-primary transition-colors">
-              Home
-            </Link>
-            <Link to="/menu" className="font-medium hover:text-restaurant-primary transition-colors">
-              Menu
-            </Link>
-            <Link to="/about" className="font-medium hover:text-restaurant-primary transition-colors">
-              About
-            </Link>
-            <Link to="/contact" className="font-medium hover:text-restaurant-primary transition-colors">
-              Contact
-            </Link>
-            
-            {user ? (
+
+          {!isMobile && (
+            <>
+              <ul className="flex space-x-8">
+                <li>
+                  <Link 
+                    to="/" 
+                    className={`hover:text-primary transition-colors ${isActive('/') ? 'text-primary font-medium' : ''}`}
+                  >
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/menu" 
+                    className={`hover:text-primary transition-colors ${isActive('/menu') ? 'text-primary font-medium' : ''}`}
+                  >
+                    Menu
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/reservation" 
+                    className={`hover:text-primary transition-colors ${isActive('/reservation') ? 'text-primary font-medium' : ''}`}
+                  >
+                    Reservations
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/about" 
+                    className={`hover:text-primary transition-colors ${isActive('/about') ? 'text-primary font-medium' : ''}`}
+                  >
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/contact" 
+                    className={`hover:text-primary transition-colors ${isActive('/contact') ? 'text-primary font-medium' : ''}`}
+                  >
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+
               <div className="flex items-center space-x-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center space-x-2 p-0">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="/avatar.png" />
-                        <AvatarFallback className="bg-restaurant-primary/20">
-                          {profile?.first_name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{displayName}</span>
+                    <Button variant="ghost" size="icon" className="relative flex items-center gap-1">
+                      {profile ? (
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                            {profile.first_name?.charAt(0) || profile.last_name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <User className="h-5 w-5" />
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>
-                      <User size={16} className="mr-2" />
-                      Profile
-                    </DropdownMenuItem>
-                    
-                    {isAdmin && (
-                      <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
-                        <LayoutDashboard size={16} className="mr-2" />
-                        Admin Dashboard
-                      </DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {isAuthenticated ? (
+                      <>
+                        <DropdownMenuLabel>
+                          {profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}` : 'My Account'}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/profile" className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        {isAdmin && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/dashboard" className="cursor-pointer">
+                              <Settings className="mr-2 h-4 w-4" />
+                              Admin Dashboard
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Log out
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/login" className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            Log in
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
                     )}
-                    
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      <LogOut size={16} className="mr-2" />
-                      Logout
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-            ) : (
-              <Link to="/login">
-                <Button variant="outline">Login</Button>
-              </Link>
-            )}
-            
-            <Link to="/cart" className="relative">
-              <ShoppingCart size={24} />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-restaurant-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
-          </div>
-          
-          {/* Mobile Menu Button */}
-          <div className="flex items-center space-x-4 md:hidden">
-            <Link to="/cart" className="relative mr-2">
-              <ShoppingCart size={24} />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-restaurant-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
-            
-            <button 
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="focus:outline-none"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-        
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden pt-4 pb-6 space-y-4 animate-fade-in">
-            <Link to="/" className="block py-2 font-medium hover:text-restaurant-primary">
-              Home
-            </Link>
-            <Link to="/menu" className="block py-2 font-medium hover:text-restaurant-primary">
-              Menu
-            </Link>
-            <Link to="/about" className="block py-2 font-medium hover:text-restaurant-primary">
-              About
-            </Link>
-            <Link to="/contact" className="block py-2 font-medium hover:text-restaurant-primary">
-              Contact
-            </Link>
-            
-            {user ? (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 py-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/avatar.png" />
-                    <AvatarFallback className="bg-restaurant-primary/20">
-                      {profile?.first_name?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium">{displayName}</span>
-                </div>
                 
-                <Link to="/profile" className="block py-2 pl-10 hover:text-restaurant-primary">
+                <Link to="/cart">
+                  <Button variant="ghost" size="icon" className="relative">
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartItems.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {cartItems.reduce((total, item) => total + item.quantity, 0)}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+              </div>
+            </>
+          )}
+
+          {isMobile && (
+            <div className="flex items-center">
+              <Link to="/cart" className="mr-2">
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartItems.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {cartItems.reduce((total, item) => total + item.quantity, 0)}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {isMobile && isMenuOpen && (
+          <div className="mt-4 pb-4">
+            <ul className="space-y-4">
+              <li>
+                <Link 
+                  to="/" 
+                  className={`block hover:text-primary transition-colors ${isActive('/') ? 'text-primary font-medium' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/menu" 
+                  className={`block hover:text-primary transition-colors ${isActive('/menu') ? 'text-primary font-medium' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Menu
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/reservation" 
+                  className={`block hover:text-primary transition-colors ${isActive('/reservation') ? 'text-primary font-medium' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Reservations
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/about" 
+                  className={`block hover:text-primary transition-colors ${isActive('/about') ? 'text-primary font-medium' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/contact" 
+                  className={`block hover:text-primary transition-colors ${isActive('/contact') ? 'text-primary font-medium' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/profile" 
+                  className={`block hover:text-primary transition-colors ${isActive('/profile') ? 'text-primary font-medium' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Profile
                 </Link>
-                
-                {isAdmin && (
-                  <Link to="/admin/dashboard" className="block py-2 pl-10 hover:text-restaurant-primary">
+              </li>
+              {isAuthenticated && isAdmin && (
+                <li>
+                  <Link 
+                    to="/admin/dashboard" 
+                    className={`block hover:text-primary transition-colors ${isActive('/admin/dashboard') ? 'text-primary font-medium' : ''}`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     Admin Dashboard
                   </Link>
-                )}
-                
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout} 
-                  className="w-full mt-2"
-                >
-                  Logout
-                </Button>
-              </div>
-            ) : (
-              <Link to="/login" className="block">
-                <Button variant="outline" className="w-full">Login</Button>
-              </Link>
-            )}
+                </li>
+              )}
+              {isAuthenticated && (
+                <li>
+                  <button 
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block hover:text-primary transition-colors"
+                  >
+                    Log out
+                  </button>
+                </li>
+              )}
+            </ul>
           </div>
         )}
       </div>
     </nav>
   );
-};
-
-export default Navbar;
+}
