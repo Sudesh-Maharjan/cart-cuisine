@@ -41,7 +41,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-medium mb-1">Address</h3>
-                      <p className="text-muted-foreground">123 Gourmet Avenue, Culinary District, CA 90210</p>
+                      <p className="text-muted-foreground">123 High Street, Canterbury, Kent, CT1 2AB, United Kingdom</p>
                     </div>
                   </div>
                   
@@ -51,7 +51,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-medium mb-1">Phone</h3>
-                      <p className="text-muted-foreground">+1 (555) 123-4567</p>
+                      <p className="text-muted-foreground">(+977) 9854412563</p>
                     </div>
                   </div>
                   
@@ -61,7 +61,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-medium mb-1">Email</h3>
-                      <p className="text-muted-foreground">info@savoriarestaurant.com</p>
+                      <p className="text-muted-foreground">info@re-invent.uk</p>
                     </div>
                   </div>
                   
