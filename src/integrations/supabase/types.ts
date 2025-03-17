@@ -9,6 +9,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      pending_orders: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          // Add other fields in the `pending_orders` table
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          // Add other fields for inserting into `pending_orders`
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          // Add other fields for updating `pending_orders`
+        };
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {};
+    CompositeTypes: {};
+  };
       item_addons: {
         Row: {
           created_at: string | null
