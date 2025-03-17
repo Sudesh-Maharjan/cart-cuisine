@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,9 @@ import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Reservation from "./pages/Reservation";
 import Profile from "./pages/Profile";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/Login";
@@ -51,7 +53,13 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/reservation" element={<Reservation />} />
               <Route path="/order-success" element={<OrderSuccess />} />
-              
+              <Route
+                path="/terms-and-conditions"
+                element={<TermsAndConditions />}
+              />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
+
               {/* Admin routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminLayout />}>
@@ -64,7 +72,7 @@ const App = () => (
                 <Route path="settings" element={<Settings />} />
                 <Route index element={<AdminDashboard />} />
               </Route>
-              
+
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
