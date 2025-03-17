@@ -186,7 +186,7 @@ const Orders: React.FC = () => {
   );
 };
 
-const OrderActions: React.FC<{ order: any }> = ({ order }) => {
+const OrderActions: React.FC<{ order }> = ({ order }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -222,7 +222,7 @@ const OrderActions: React.FC<{ order: any }> = ({ order }) => {
   );
 };
 
-const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
+const OrderDetails: React.FC<{ order }> = ({ order }) => {
   const [variations, setVariations] = useState<any[]>([]);
   const { toast } = useToast();
 
@@ -230,7 +230,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
     const fetchVariations = async () => {
       try {
         // Extract unique item IDs from the order items
-        const itemIds = [...new Set(order.order_items.map((item: any) => item.item_id))];
+        const itemIds = [...new Set(order.order_items.map((item) => item.item_id))];
 
         // Fetch variations for all item IDs
         const { data, error } = await supabase
@@ -240,7 +240,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
 
         if (error) throw error;
         setVariations(data || []);
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: 'Error',
           description: `Failed to fetch variations: ${error.message}`,
@@ -253,7 +253,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
   }, [order.order_items, toast]);
 
   // Ensure we handle null variation_id safely
-  const getVariationName = (item: any) => {
+  const getVariationName = (item) => {
     if (!item.variation_id) return null;
     
     const variation = variations.find(v => v.id === item.variation_id);
@@ -342,7 +342,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
         <div className="space-y-4">
           <h3 className="font-medium text-lg">Order Items</h3>
           <div className="space-y-2">
-            {order.order_items.map((item: any) => (
+            {order.order_items.map((item) => (
               <div key={item.id} className="bg-muted/30 p-3 rounded-md">
                 <div className="flex justify-between items-start">
                   <div>
