@@ -118,7 +118,10 @@ const HomePage: React.FC = () => {
           } transition-opacity duration-1000`}
           onLoadedData={handleVideoLoaded}
         >
-          <source src="https://res.cloudinary.com/dsjqo8stu/video/upload/v1742095854/Exploring_bhaktapur_with_Fpv_drone_-_Biska_jatra._4k_1_wacdk8.mp4" type="video/mp4" />
+          <source
+            src="https://res.cloudinary.com/dsjqo8stu/video/upload/v1742095854/Exploring_bhaktapur_with_Fpv_drone_-_Biska_jatra._4k_1_wacdk8.mp4"
+            type="video/mp4"
+          />
           Your browser does not support the video tag.
         </video>
         <div className="absolute inset-0 bg-black/30 z-0"></div>
@@ -293,7 +296,14 @@ const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="animate-on-scroll">
               <div className="bg-muted rounded-lg overflow-hidden shadow-xl border border-border h-[400px]">
-              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2495.683054580756!2d1.075554976795669!3d51.28015297176251!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47decbb5905deba5%3A0x3739ee38591c25a7!2s123%20High%20St%2C%20Canterbury%2C%20UK!5e0!3m2!1sen!2snp!4v1742099620689!5m2!1sen!2snp" width="100%" height="400"  allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+              <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d20318.152483991595!2d-4.169538444694765!3d50.464025!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x486c8d0ed1c4f559%3A0x87181266ce8e7b42!2sLopwell%20Dam!5e0!3m2!1sen!2snp!4v1742188381567!5m2!1sen!2snp"
+                      width="100%"
+                      height="400"
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
               </div>
             </div>
             <div className="glass-panel p-8 rounded-lg animate-on-scroll">
@@ -320,8 +330,8 @@ const HomePage: React.FC = () => {
                         Restaurant Address
                       </h3>
                       <address className="not-italic text-foreground/80">
-                        <p className="mb-2">Kent, United Kingdom</p>
-                        <p className="mb-2">Foodville, FC 12345</p>
+                        <p className="mb-2">Lopwell Dam, Plymouth, Devon</p>
+                        <p className="mb-2">Devon, PL6 7BZ</p>
                         <p className="mb-2">United Kingdom</p>
                       </address>
                     </div>
@@ -362,8 +372,8 @@ const HomePage: React.FC = () => {
                       </h3>
                       <ul className="space-y-2 text-foreground/80">
                         <li>
-                          <span className="font-medium">Phone:</span> (+977)
-                          9854412569
+                          <span className="font-medium">Phone:</span> 01752
+                          695978
                         </li>
                         <li>
                           <span className="font-medium">Email:</span>{" "}
