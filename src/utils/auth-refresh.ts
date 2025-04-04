@@ -21,7 +21,7 @@ export const refreshSupabaseSession = async (): Promise<void> => {
     if (error) {
       console.error('Error refreshing session:', error.message);
     } else {
-      console.log('Session refreshed successfully');
+      console.log('Session refreshed successfully at:', new Date().toISOString());
     }
   } catch (err) {
     console.error('Failed to refresh session:', err);

@@ -12,13 +12,13 @@ export const useAuthRefresh = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Set up automatic token refreshing every 20 minutes
-    const cleanupTokenRefresh = setupTokenRefresh(20);
+    // Set up automatic token refreshing every 10 minutes
+    const cleanupTokenRefresh = setupTokenRefresh(10);
     
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'TOKEN_REFRESHED') {
-        console.log('Auth token refreshed successfully');
+        console.log('Auth token refreshed successfully at:', new Date().toISOString());
       }
       
       if (event === 'SIGNED_OUT') {
