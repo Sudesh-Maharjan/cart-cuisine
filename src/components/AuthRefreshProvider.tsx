@@ -8,8 +8,8 @@ interface AuthRefreshProviderProps {
 
 const AuthRefreshProvider = ({ children }: AuthRefreshProviderProps) => {
   useEffect(() => {
-    // Set up token refresh every 10 minutes, which is more frequent than before
-    const cleanup = setupTokenRefresh(10);
+    // Set up token refresh every 5 minutes, which is more frequent than before
+    const cleanup = setupTokenRefresh(5);
     
     return () => {
       cleanup();
