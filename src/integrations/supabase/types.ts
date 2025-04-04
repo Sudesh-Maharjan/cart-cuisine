@@ -9,32 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      pending_orders: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          // Add other fields in the `pending_orders` table
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          // Add other fields for inserting into `pending_orders`
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          // Add other fields for updating `pending_orders`
-        };
-      };
-    };
-    Views: {};
-    Functions: {};
-    Enums: {};
-    CompositeTypes: {};
-  };
       item_addons: {
         Row: {
           created_at: string | null
@@ -324,6 +298,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      pending_orders: {
+        Row: {
+          cart_items: Json
+          created_at: string | null
+          id: string
+          order_number: string
+          profiles: string | null
+          status: string | null
+          total_amount: number
+        }
+        Insert: {
+          cart_items: Json
+          created_at?: string | null
+          id?: string
+          order_number: string
+          profiles?: string | null
+          status?: string | null
+          total_amount: number
+        }
+        Update: {
+          cart_items?: Json
+          created_at?: string | null
+          id?: string
+          order_number?: string
+          profiles?: string | null
+          status?: string | null
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_orders_profiles_fkey"
+            columns: ["profiles"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

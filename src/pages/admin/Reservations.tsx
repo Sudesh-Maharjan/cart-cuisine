@@ -151,7 +151,7 @@ const Reservations: React.FC = () => {
         }
       });
       
-      console.log('Email function response status:', response.status);
+      console.log('Email function response:', response);
       
       if (response.error) {
         throw new Error(`Email API error: ${response.error.message}`);
