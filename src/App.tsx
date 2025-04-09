@@ -13,6 +13,8 @@ import Menu from "./pages/Menu";
 import MenuCategory from "./pages/MenuCategory";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import OrderSuccess from "./pages/OrderSuccess";
 import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
@@ -63,6 +65,8 @@ const App = () => (
                 <Route path="/menu/:categoryId" element={<MenuCategory />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/reservation" element={<Reservation />} />
