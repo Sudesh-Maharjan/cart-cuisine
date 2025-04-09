@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { setupTokenRefresh, refreshSupabaseSession } from './auth-refresh';
+import { setupTokenRefresh } from './auth-refresh';
 import { supabase } from '@/integrations/supabase/client'; 
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,11 +12,8 @@ export const useAuthRefresh = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Refresh the token immediately when the component mounts
-    refreshSupabaseSession();
-    
-    // Set up automatic token refreshing every 5 minutes
-    const cleanupTokenRefresh = setupTokenRefresh(5);
+    // Set up automatic token refreshing every 10 minutes
+    const cleanupTokenRefresh = setupTokenRefresh(10);
     
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -33,30 +30,9 @@ export const useAuthRefresh = () => {
       }
     });
     
-    // Refresh token on focus and visibility changes
-    const handleFocus = () => refreshSupabaseSession();
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshSupabaseSession();
-      }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       cleanupTokenRefresh();
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [toast]);
-};
-
-/**
- * Force an immediate token refresh
- * Useful when making important API calls that require fresh tokens
- */
-export const forceTokenRefresh = async () => {
-  return refreshSupabaseSession();
 };
