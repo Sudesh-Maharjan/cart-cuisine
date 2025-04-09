@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -68,7 +69,12 @@ const Cart: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const ids = cartItems.map(item => item.menuItem.id);
+      const ids = cartItems.map(item => {
+        // Create unique key for each item that includes variation
+        const variationKey = item.menuItem.customization?.variation?.id || 'no-variation';
+        return `${item.menuItem.id}-${variationKey}`;
+      });
+      
       let timeoutIds: NodeJS.Timeout[] = [];
       
       ids.forEach((id, index) => {
@@ -376,6 +382,9 @@ const Cart: React.FC = () => {
     }
   ];
   
+  // Fix: Check if cart is empty before rendering cart items
+  const hasItems = cartItems && cartItems.length > 0;
+  
   return (
     <>
       <Navbar />
@@ -386,17 +395,19 @@ const Cart: React.FC = () => {
             Your Cart
           </h1>
           
-          {cartItems.length > 0 ? (
+          {hasItems ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 bg-card rounded-lg shadow-xl border border-border p-6">
                 <div className="space-y-6">
                   {cartItems.map((item) => {
-                    const itemKey = `${item.menuItem.id}-${item.menuItem.customization?.variation?.id || 'no-variation'}`;
+                    // Create a unique key that includes both the item ID and variation ID
+                    const variationId = item.menuItem.customization?.variation?.id;
+                    const itemKey = `${item.menuItem.id}-${variationId || 'no-variation'}`;
                     const isAnimated = animatedItems.includes(itemKey);
                     
                     return (
                       <div 
-                        key={`${item.menuItem.id}-${item.menuItem.customization?.variation?.id || 'no-variation'}`} 
+                        key={itemKey}
                         className={`flex flex-col sm:flex-row items-start border-b border-border pb-6 transition-all duration-300 ${
                           isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                         }`}
