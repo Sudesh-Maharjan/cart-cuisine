@@ -299,6 +299,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_orders: {
+        Row: {
+          cart_items: Json
+          created_at: string | null
+          id: string
+          order_number: string
+          profiles: string | null
+          status: string | null
+          total_amount: number
+        }
+        Insert: {
+          cart_items: Json
+          created_at?: string | null
+          id?: string
+          order_number: string
+          profiles?: string | null
+          status?: string | null
+          total_amount: number
+        }
+        Update: {
+          cart_items?: Json
+          created_at?: string | null
+          id?: string
+          order_number?: string
+          profiles?: string | null
+          status?: string | null
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_orders_profiles_fkey"
+            columns: ["profiles"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null

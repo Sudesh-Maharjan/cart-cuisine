@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 const Orders: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newOrder, setNewOrder] = useState<any | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,11 +45,9 @@ const Orders: React.FC = () => {
     // Set up real-time listener for orders
     const channel = supabase
       .channel('orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-        console.log('Change received!', payload);
-        fetchOrders();
-      })
-      .subscribe()
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },
+        fetchOrders)
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel)
@@ -72,7 +71,7 @@ const Orders: React.FC = () => {
 
       if (error) throw error;
       setOrders(data || []);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error',
         description: `Failed to fetch orders: ${error.message}`,
@@ -83,15 +82,55 @@ const Orders: React.FC = () => {
     }
   };
 
+  const handleStatusChange = async (orderId, status) => {
+    try {
+      const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+      if (error) throw error;
+      fetchOrders();
+      toast({ title: 'Order Updated', description: `Status changed to ${status}` });
+    } catch (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleAcceptOrder = async () => {
+    if (!newOrder) return;
+    try {
+      const { error } = await supabase.from('orders').insert(newOrder);
+      if (error) throw error;
+      toast({ title: 'Order Accepted', description: 'The order has been placed successfully.' });
+      setNewOrder(null);
+      fetchOrders();
+    } catch (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeclineOrder = () => {
+    setNewOrder(null);
+    toast({ title: 'Order Declined', description: 'The order was not placed.' });
+  };
+
+
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Orders</h1>
       </div>
-      
+      {newOrder && (
+        <div className="p-4 mb-4 bg-yellow-100 border border-yellow-300 rounded-md">
+          <p className="text-lg font-semibold">New Order Received!</p>
+          <p>Order Number: {newOrder.order_number}</p>
+          <p>Total: ${newOrder.total_amount.toFixed(2)}</p>
+          <div className="mt-2 flex gap-2">
+            <Button onClick={handleAcceptOrder} variant="default">Accept</Button>
+            <Button onClick={handleDeclineOrder} variant="destructive">Decline</Button>
+          </div>
+        </div>
+      )}
       <ScrollArea>
         <Table>
-          <TableCaption>A list of your recent orders.</TableCaption>
+          <TableCaption>List of your recent orders.</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[100px]">Order #</TableHead>
@@ -119,7 +158,20 @@ const Orders: React.FC = () => {
                   <TableCell>{order.user_id || 'Guest'}</TableCell>
                   <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{order.status}</Badge>
+                   
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline">{order.status}</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {['Processing', 'Out for Delivery', 'Completed'].map(status => (
+                            <DropdownMenuItem key={status} onClick={() => handleStatusChange(order.id, status)}>
+                              {status}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    
                   </TableCell>
                   <TableCell className="text-right">
                     <OrderActions order={order} />
@@ -134,7 +186,7 @@ const Orders: React.FC = () => {
   );
 };
 
-const OrderActions: React.FC<{ order: any }> = ({ order }) => {
+const OrderActions: React.FC<{ order }> = ({ order }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -170,7 +222,7 @@ const OrderActions: React.FC<{ order: any }> = ({ order }) => {
   );
 };
 
-const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
+const OrderDetails: React.FC<{ order }> = ({ order }) => {
   const [variations, setVariations] = useState<any[]>([]);
   const { toast } = useToast();
 
@@ -178,7 +230,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
     const fetchVariations = async () => {
       try {
         // Extract unique item IDs from the order items
-        const itemIds = [...new Set(order.order_items.map((item: any) => item.item_id))];
+        const itemIds = [...new Set(order.order_items.map((item) => item.item_id))];
 
         // Fetch variations for all item IDs
         const { data, error } = await supabase
@@ -188,7 +240,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
 
         if (error) throw error;
         setVariations(data || []);
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: 'Error',
           description: `Failed to fetch variations: ${error.message}`,
@@ -201,13 +253,62 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
   }, [order.order_items, toast]);
 
   // Ensure we handle null variation_id safely
-  const getVariationName = (item: any) => {
+  const getVariationName = (item) => {
     if (!item.variation_id) return null;
     
     const variation = variations.find(v => v.id === item.variation_id);
     return variation ? variation.name : null;
   };
-
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (!printWindow) return;
+  
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Order Invoice</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid black; padding: 8px; text-align: left; }
+            .total { font-weight: bold; text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h1>Order Invoice</h1>
+          <p><strong>Order Number:</strong> ${order.order_number}</p>
+          <p><strong>Date:</strong> ${format(new Date(order.created_at), 'MMM d, yyyy h:mm a')}</p>
+          <p><strong>Customer:</strong> ${order.users ? order.users.full_name : 'Guest'}</p>
+          <table>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+            ${order.order_items
+              .map(
+                (item) => `
+                  <tr>
+                    <td>${item.menu_items?.name || 'Unknown Item'}</td>
+                    <td>${item.quantity}</td>
+                    <td>$${parseFloat(item.price).toFixed(2)}</td>
+                    <td>$${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
+                  </tr>
+                `
+              )
+              .join('')}
+          </table>
+          <p class="total"><strong>Grand Total: $${order.total_amount.toFixed(2)}</strong></p>
+        </body>
+      </html>
+    `);
+  
+    printWindow.document.close();
+    printWindow.print();
+  };
+  
   return (
     <>
       <DialogHeader>
@@ -241,7 +342,7 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
         <div className="space-y-4">
           <h3 className="font-medium text-lg">Order Items</h3>
           <div className="space-y-2">
-            {order.order_items.map((item: any) => (
+            {order.order_items.map((item) => (
               <div key={item.id} className="bg-muted/30 p-3 rounded-md">
                 <div className="flex justify-between items-start">
                   <div>
@@ -264,9 +365,14 @@ const OrderDetails: React.FC<{ order: any }> = ({ order }) => {
           </div>
         </div>
         
-        <div>
+        <div className='flex justify-between'>
+          <div className="">
           <h3 className="font-medium text-lg">Additional Notes</h3>
-          <p>{order.notes || 'No additional notes.'}</p>
+          <p>{order.notes || 'No additional notes.'}</p></div>
+          <DropdownMenuItem onClick={handlePrint} className='foreground cursor-pointer'>
+  🖨 Print Order
+</DropdownMenuItem>
+
         </div>
       </div>
     </>

@@ -80,7 +80,7 @@ const Login: React.FC = () => {
           <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="p-6">
               <h1 className="font-serif text-2xl font-bold mb-6 text-center text-restaurant-dark">
-                Welcome to Savoria
+                Welcome Back!
               </h1>
               
               <Tabs defaultValue="login">
@@ -92,7 +92,7 @@ const Login: React.FC = () => {
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className='text-black'>Email</Label>
                       <Input 
                         id="email" 
                         type="email" 
@@ -104,7 +104,7 @@ const Login: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password" className='text-black'>Password</Label>
                         <Link 
                           to="/forgot-password" 
                           className="text-sm text-restaurant-primary hover:underline"
@@ -128,16 +128,16 @@ const Login: React.FC = () => {
                     >
                       {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
-                    <p className="text-center text-sm text-gray-500 mt-4">
+                    {/* <p className="text-center text-sm text-gray-500 mt-4">
                       For demo purposes, use: user@example.com / password123
-                    </p>
+                    </p> */}
                   </form>
                 </TabsContent>
                 
                 <TabsContent value="register">
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Name</Label>
+                      <Label htmlFor="name" className='text-black'>Name</Label>
                       <Input 
                         id="name" 
                         type="text" 
@@ -148,7 +148,7 @@ const Login: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-email">Email</Label>
+                      <Label htmlFor="register-email" className='text-black'>Email</Label>
                       <Input 
                         id="register-email" 
                         type="email" 
@@ -159,7 +159,7 @@ const Login: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-password">Password</Label>
+                      <Label htmlFor="register-password" className='text-black'>Password</Label>
                       <Input 
                         id="register-password" 
                         type="password" 
@@ -179,10 +179,10 @@ const Login: React.FC = () => {
                   </form>
                 </TabsContent>
               </Tabs>
-              
+{/*               
               <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
                 By continuing, you agree to our terms of service and privacy policy.
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

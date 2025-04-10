@@ -77,6 +77,10 @@ const Reservations: React.FC = () => {
   
   useEffect(() => {
     fetchReservations();
+    const playNotificationSound = () => {
+      const audio = new Audio('https://res.cloudinary.com/your-cloud-name/video/upload/v1712345678/notification.mp3');
+      audio.play().catch(err => console.log('Audio play error:', err));
+    };
     
     // Set up real-time listener for reservation changes
     const channel = supabase
@@ -101,9 +105,7 @@ const Reservations: React.FC = () => {
             description: `${newReservation.name} has made a reservation for ${format(new Date(newReservation.date), 'MMM dd, yyyy')} at ${newReservation.time}.`,
           });
           
-          // Play notification sound if available
-          const audio = new Audio('/notification.mp3');
-          audio.play().catch(err => console.log('Audio play error:', err));
+          playNotificationSound();
         }
       )
       .on(
@@ -122,6 +124,7 @@ const Reservations: React.FC = () => {
             prev.map(res => res.id === updatedReservation.id ? updatedReservation : res)
           );
         }
+        
       )
       .subscribe();
       
@@ -148,7 +151,7 @@ const Reservations: React.FC = () => {
         }
       });
       
-      console.log('Email function response status:', response.status);
+      console.log('Email function response:', response);
       
       if (response.error) {
         throw new Error(`Email API error: ${response.error.message}`);

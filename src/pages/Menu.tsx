@@ -320,15 +320,15 @@ const Menu: React.FC = () => {
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span>£{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Tax (8%):</span>
-                        <span>${tax.toFixed(2)}</span>
+                        <span>£{tax.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between font-bold">
                         <span>Total:</span>
-                        <span>${total.toFixed(2)}</span>
+                        <span>£{total.toFixed(2)}</span>
                       </div>
                     </div>
                     <Button className="w-full" asChild>
@@ -389,15 +389,15 @@ const Menu: React.FC = () => {
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span>£{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Tax (8%):</span>
-                        <span>${tax.toFixed(2)}</span>
+                        <span>£{tax.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between font-bold">
                         <span>Total:</span>
-                        <span>${total.toFixed(2)}</span>
+                        <span>£{total.toFixed(2)}</span>
                       </div>
                     </div>
                     <Button 
@@ -538,7 +538,7 @@ const CartItemCard: React.FC<{ item: { menuItem: MenuItem, quantity: number } }>
               </Button>
             </div>
             <div className="font-medium text-sm">
-              ${(totalPrice * quantity).toFixed(2)}
+            £{(totalPrice * quantity).toFixed(2)}
             </div>
           </div>
         </div>
