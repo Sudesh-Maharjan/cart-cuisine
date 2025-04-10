@@ -119,7 +119,7 @@ const HomePage: React.FC = () => {
           onLoadedData={handleVideoLoaded}
         >
           <source
-            src="https://res.cloudinary.com/dsjqo8stu/video/upload/v1742095854/Exploring_bhaktapur_with_Fpv_drone_-_Biska_jatra._4k_1_wacdk8.mp4"
+            src="https://res.cloudinary.com/dc5s1okmy/video/upload/v1744255628/12254141_3840_2160_24fps_merged_b5pq8j.mp4"
             type="video/mp4"
           />
           Your browser does not support the video tag.
